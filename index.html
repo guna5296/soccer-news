@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Arsenal Daily Hub</title>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 680px; margin: 0 auto; padding: 10px; background: #111; color: #eaeaea; font-size: 15px; line-height: 1.55; }
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 700px; margin: 0 auto; padding: 10px; background: #111; color: #eaeaea; font-size: 15px; line-height: 1.55; }
   .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ef0107; padding-bottom: 6px; }
   .header h1 { font-size: 1.2rem; margin: 0; color: #ff4d4d; }
   .next-box { background: #1c1c1c; border-left: 4px solid #ef0107; padding: 8px 12px; margin: 10px 0; font-size: 0.9rem; border-radius: 4px; }
-  .tabs { display: flex; gap: 6px; margin: 12px 0; }
-  .tab-btn { flex: 1; padding: 10px; background: #222; color: #aaa; border: 1px solid #333; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; user-select: none; }
+  .tabs { display: flex; gap: 5px; margin: 12px 0; }
+  .tab-btn { flex: 1; padding: 9px 4px; background: #222; color: #aaa; border: 1px solid #333; border-radius: 6px; font-weight: bold; font-size: 0.88rem; cursor: pointer; text-align: center; user-select: none; }
   .tab-btn.active { background: #ef0107; color: #fff; border-color: #ef0107; }
   .content { display: none; }
   .content.active { display: block; }
@@ -23,7 +23,7 @@
   .detail-box li { margin-bottom: 4px; }
   .ext-link { text-align: right; margin: 4px 0 0; font-size: 0.8rem; }
   a { color: #66b3ff; text-decoration: none; }
-  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.82rem; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.8rem; }
   th, td { border: 1px solid #2a2a2a; padding: 5px 6px; }
   th { background: #222; }
   tr:nth-child(even) { background: #181818; }
@@ -33,199 +33,258 @@
   <div id="app">
     <div class="header">
       <h1>🔴 Arsenal & PL Hub</h1>
-      <small>2026/11/11 21:10 更新</small>
+      <small>2026/11/11 21:21 更新</small>
     </div>
-    <div class='next-box'>次回試合予定データ取得中</div>
+    <div class='next-box'>次回予定なし</div>
     <div class="tabs">
-      <div class="tab-btn active" onclick="switchTab('news', this)">📰 ニュース＆移籍</div>
-      <div class="tab-btn" onclick="switchTab('stats', this)">📊 前回試合スタッツ</div>
+      <div class="tab-btn active" onclick="switchTab('news', this)">📰 ニュース</div>
+      <div class="tab-btn" onclick="switchTab('stats', this)">📊 前回スタッツ</div>
+      <div class="tab-btn" onclick="switchTab('table', this)">🏆 PL順位表</div>
     </div>
-    <div id="news" class="content active"><h2>🔴 アーセナル最新ニュース（最優先）</h2>
-
+    <div id="news" class="content active"><h2>🔴 アーセナル最新ニュース（現地番記者・専門メディア）</h2>
 <details>
-  <summary>🔴 ウーデゴールがハル戦で殊勲の決勝ゴール！アーセナルが粘る相手を退け首位を維持</summary>
+  <summary>🔴 [Arseblog] 19歳GKカリ・ランソンがナショナルリーグ・サウスのビレリカイ・タウンへ期限付き移籍</summary>
   <div class="detail-box">
     <ul>
-      <li>ハル・シティの粘り強い守備に苦しめられたアーセナルだったが、後半残り20分の場面で主将マルティン・ウーデゴールが待望の勝ち越しゴールを決め、1-0で辛勝を収めた。</li>
-      <li>ハルは2008年にアーセナルのホームで勝利して以来、対アーセナル戦14試合未勝利と天敵相手に健闘を見せたが、最後はアーセナルの勝負強さに屈する格好となった。</li>
-      <li>プレミアリーグ王座奪還を目指すアーセナルにとって、こうした膠着した展開で勝ち点3を取りきる粘りとキャプテンの決定力が、タイトルレースにおいて大きな糧となっている。</li>
+      <li>アカデミーで長年育成され、トップチームのベンチ入りも経験している19歳の若手GKカリ・ランソンが、実戦経験を積むためにビレリカイ・タウンへ初期28日間の期限付き移籍で加入。</li>
+      <li>アーセナルの下部組織で着実にステップアップを続けてきたランソンにとって、シニアレベルでの定期的な出場機会を得るための重要な武者修行となる。</li>
+      <li>クラブは若手GKの育成プランの一環として、レンタル移籍を通じてフィジカル面や精神的なタフさを養わせる方針。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/07/arsenal-hull-premier-league-match-report" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://arseblog.news/2026/11/khari-ranson-gets-off-to-impressive-start-out-on-loan/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 アルテタ監督、ライスの過労懸念を徹底否定「コンディションは厳重に管理している」</summary>
+  <summary>🔴 [Arseblog] マルティン・スビメンディ、アトレティコ・マドリードへの移籍の噂を真っ向から否定「全く根拠がない」</summary>
   <div class="detail-box">
     <ul>
-      <li>ミケル・アルテタ監督は、中盤の絶対的要であるデクラン・ライスが出場過多により疲弊しているのではないかという懸念に対し、「我々は彼のコンディションを細心の注意を払ってケアしている」と主張した。</li>
-      <li>過密日程の中でも絶大なパフォーマンスを見せるライスだが、クラブの専門スタッフによる科学的なコンディショニング管理が行われており、過度な負荷リスクは避けられていると説明。</li>
-      <li>今後のタイトル争いや欧州戦を勝ち抜く上でライスの稼働率維持は不可欠であり、指揮官のマネジメント手腕に期待がかかる。</li>
+      <li>アーセナルでの生活に不満を抱いているとの憶測や、アトレティコ・マドリードへの1月移籍の噂について、マルティン・スビメンディ本人が「完全に事実無根である」と強く否定。</li>
+      <li>メディアに対し、選手の将来に関する報道を行う際にはより慎重になるべきだと苦言を呈し、自身がクラブに集中している姿勢を強調した。</li>
+      <li>ミケル・アルテタ監督がトーマス・パルテ的役割の長期的な後継者として高く評価している同選手を巡り、スペインメディアの間で加熱していた憶測に自ら釘を刺した形となった。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/06/premier-league-news-manchester-united-baleba-manchester-city-donnarumma-arsenal-arteta-rice" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://arseblog.news/2026/11/theres-absolutely-nothing-to-it-zubimendi-dismisses-exit-talks/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 ダビド・ラヤ「昨季CL決勝の敗戦の痛みが血に流れている」悲願成就への執念を語る</summary>
+  <summary>🔴 [Arseblog] デヴィッド・ラヤとアレッシア・ルッソがFIFPRO男子・女子ワールド11に選出</summary>
   <div class="detail-box">
     <ul>
-      <li>守護神ダビド・ラヤは、昨シーズンのUEFAチャンピオンズリーグ決勝でPSGにPK戦の末破れた悔しさが、今季のチームの強烈な動機付けになっていると明かした。</li>
-      <li>スラヴィア・プラハ戦でも圧巻のセービングを見せて勝利に貢献したラヤは、「自分たちの手で今年はより良い結果（優勝）を掴み取らなければならない」と語る。</li>
-      <li>敗戦の痛みを糧にした精神的成長と守備陣の団結力が、欧州の激闘を勝ち抜く大きな原動力となっている。</li>
+      <l>世界75カ国のプロサッカー選手による投票の結果、アーセナルの守護神デヴィッド・ラヤと女子チームのエースであるアレッシア・ルッソが2026年のFIFPROワールド11に栄誉ある選出。</l>
+      <li>過去1年間にわたり国内外の公式戦で圧倒的な一貫性と傑出したパフォーマンスを維持し続けたことが、同僚プロ選手たちから高く評価された。</li>
+      <li>両選手ともにアーセナルの攻守の要として不可欠な存在であり、クラブ全体のプレゼンスの高さを証明する快挙となっている。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/05/arsenal-pain-champions-league-final-defeat-david-raya" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://arseblog.news/2026/11/raya-russo-and-berta-scop-gongs/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 ギョケレシュが決勝弾！アーセナル、スラヴィア・プラハを下し欧州無敗をキープ</summary>
+  <summary>🔴 [Arseblog] アーセナル女子、アンフィールドでのリヴァプール戦勝利の勝因は「右サイド偏重の戦術」</summary>
   <div class="detail-box">
     <ul>
-      <li>チャンピオンズリーグのアウェイ戦にて、アーセナルはスラヴィア・プラハの終盤の猛反撃に苦しみながらも、FWヴィクトル・ギョケレシュの決勝点で辛勝した。</li>
-      <li>敗れたスラヴィア・プラハは欧州最高峰の舞台での連続無勝記録が「23」となり大会最長タイ記録に並んだ一方、アーセナルは今季欧州無敗を守り抜いている。</li>
-      <li>前線で貴重な違いを作り出したギョケレシュの活躍により、接戦を確実に勝ち点3に繋げるチームの勝負強さが実証された。</li>
+      <li>アレッシア・ルッソのドッピェッタ（2得点）によりリヴァプールを2-1で下したアウェー戦で、攻撃の起点が右サイドに集中していた戦術的背景をレネ・スレーガース監督が解説。</li>
+      <li>エミリー・フォックスとリサ・バウムが右サイドから質の高いデリバリーを供給し、相手の左サイドの守備陣形を完璧に崩し切る狙いが的中した。</li>
+      <li>偶然ではなく徹底したスカウティングに基づいたサイドアタックが機能し、強豪リヴァプールを敵地で撃破する原動力となった。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/04/slavia-prague-arsenal-champions-league-match-report" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://arseblog.news/2026/11/analysis-arsenals-right-sided-bias-out-foxes-liverpool/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 アルテタ監督、怪我から復帰したサリバの実戦復帰に太鼓判</summary>
+  <summary>🔴 [Arseblog] ウィリアム・サリバがU-21アストン・ヴィラ戦で実戦復帰し45分間プレイ</summary>
   <div class="detail-box">
     <ul>
-      <li>アルテタ監督は、W杯で負傷した背中のケガで長期離脱していたDFウイリアン・サリバが今季初出場を果たす準備が整っていると語った。</li>
-      <li>サリバは先週の非公開練習試合で45分間プレーし、順調な回復を示したことでスラヴィア・プラハ戦の遠征メンバーにも復帰を果たしている。</li>
-      <li>守備の要であるサリバの復帰は、過密日程が続くアーセナルの最終ラインにとって絶大な補強となる。</li>
+      <li>負傷離脱していたウィリアム・サリバがU-21のアストン・ヴィラ戦（5-2で勝利）に先発出場し、計画通り前半のみの45分間を消化して順調な回復ぶりをアピール。</li>
+      <li>ピッチ上では正確で鋭い配球センスを見せつけ、守備陣に安定感をもたらすなどトップチーム復帰に向け万全の仕上がりを披露した。</li>
+      <li>過密日程を戦うミケル・アルテタ監督にとって、守備の要であるサリバの戦列復帰はチームにとってこの上ない朗報となる。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/03/arteta-backs-salibas-readiness-to-return-for-arsenal-at-slavia-prague" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://arseblog.news/2026/11/saliba-helps-arsenal-u21s-overcome-aston-villa/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 審判パネルの見解「ティンバーのイサクに対するシャツ引っ張りはPKを与えるべきだった」</summary>
+  <summary>🔴 [The Guardian] マルティン・ウーデゴールが粘るハル・シティを撃破し、首位アーセナルのリードを拡大</summary>
   <div class="detail-box">
     <ul>
-      <li>プレミアリーグの審判判定レビューパネルは、アーセナル対リヴァプール戦において、ユリエン・ティンバーがアレクサンダー・イサクのユニフォームを引っ張った場面について、リヴァプールにPKが与えられるべきだったとの見解を示した。</li>
-      <li>試合中はこのプレーに対してファウルが取られず物議を醸していたが、事後検証により誤審（見落とし）であった可能性が指摘された。</li>
-      <li>判定の一貫性やVARの介入基準を巡り、クラブ間やファンの間で議論が再燃している。</li>
+      <li>堅い守備ブロックを形成して抵抗するハル・シティに対し、キャプテンのマルティン・ウーデゴールが試合終盤に値千金の決勝ゴールを叩き込み、苦しみながらも勝ち点3をもぎ取った。</li>
+      <li>22年ぶりのプレミアリーグ制覇を目指す過程において、こうした粘り強い相手をこじ開ける「忍耐力」こそが現在のアーセナルの強さの証明であると現地紙が称賛。</li>
+      <li>アータテ監督率いるチームは、拮抗した展開の中でも冷静さを保ち、首位の座を固めるための勝負強さを遺憾なく発揮した。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c6n8d8kl125vo" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/07/arsenal-hull-premier-league-match-report" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 アーセナル若手FWセダック・オニールが負傷離脱、北アイルランド代表を欠場へ</summary>
+  <summary>🔴 [The Guardian] アルテタ監督、デクラン・ライスへの過密日程懸念に反論「しっかりとケアしている」</summary>
   <div class="detail-box">
     <ul>
-      <li>アーセナルに所属する期待の若手FWセダック・オニール（Ceadach O'Neill）が怪我のため、北アイルランド代表のネーションズリーグ最終2試合を欠場することが決まった。</li>
-      <li>代表チームの攻撃陣で好調な活躍が期待されていたオニールの離脱は打撃であり、早期回復に向けてクラブで治療を行う。</li>
-      <li>下部組織でも高評価を受ける若手だけに、順調なリハビリと今後のアピールに期待が寄せられている。</li>
+      <li>主力としてフル稼働が続くミッドフィルダーのデクラン・ライスについて、一部で指摘されている「使いすぎ・疲労蓄積」の懸念をミケル・アルテタ監督が真っ向から否定。</li>
+      <li>クラブの医療スタッフと連携し、選手のコンディションや負荷のデータ管理を徹底しながら「細心の注意を払ってケアを行っている」と強調。</li>
+      <li>過酷なシーズンを戦い抜く上で、ライスのフィジカルコンディショニング管理がチームの成否を分ける最重要課題の一つであることを示唆した。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cm5ynylnd71yo" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/06/premier-league-news-manchester-united-baleba-manchester-city-donnarumma-arsenal-arteta-rice" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 アーセナル、レヴァークーゼンの新鋭FWコファネをスカウティング対象に固定か</summary>
+  <summary>🔴 [The Guardian] デヴィッド・ラヤが語る「昨季CL決勝のPK敗退の痛みが今年の原動力になっている」</summary>
   <div class="detail-box">
     <ul>
-      <li>アーセナルは攻撃陣の補強候補として、バイヤー・レヴァークーゼンに所属するストライカー、クリスティアン・コファネ（Christian Kofane）の動向を注視している。</li>
-      <li>前線の層を厚くするための選択肢として、スカウト部門が同選手のパフォーマンスを定期的にモニタリング中とされる。</li>
-      <li>今後の移籍市場に向けたアーセナルのFW補強戦略における重要ターゲットの一人として注目を集めている。</li>
+      <li>昨季のチャンピオンズリーグ決勝でパリ・サンジェルマンにPK戦の末に敗れた悔しさが、今季の選手たちの血肉となり大きなモチベーションになっているとGKデヴィッド・ラヤが告白。</li>
+      <li>スラヴィア・プラハ戦でも決定的なビッグセーブを連発しチームを救ったラヤは、欧州制覇への強い執念と自己への信頼がチーム全体に浸透していると語る。</li>
+      <li>「今年こそは自分たちの手でその状況をより良いものに変える責任がある」と力強く決意を表明し、欧州CLでのタイトル獲得へ強い意欲を示した。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cjqlnl63ewzpo" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/05/arsenal-pain-champions-league-final-defeat-david-raya" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+  </div>
+</details>
+
+<details>
+  <summary>🔴 [The Guardian] ヴィクトル・ギェケレシュが決勝点！アーセナルがスラヴィア・プラハを下し欧州で勝負強さを発揮</summary>
+  <div class="detail-box">
+    <ul>
+      <li>アウェーでのチャンピオンズリーグ、スラヴィア・プラハ戦において、夏の新戦力FWヴィクトル・ギェケレシュが値千金のゴールを奪い、手堅くも価値のある勝利をもたらした。</li>
+      <li>試合終盤にはホームチームの執念の猛反撃を受けるも、アーセナルは粘り強い守備で逃げ切り、欧州の難所でのアウェー戦強さを改めて証明。</li>
+      <li>この勝利により、スラヴィア・プラハは欧州カップ戦史上最長タイの未勝利記録（23試合）に並ぶ不名誉な記録を更新する一方、アーセナルはグループステージ突破へ順調に歩みを進めた。</li>
+    </ul>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/04/slavia-prague-arsenal-champions-league-match-report" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+  </div>
+</details>
+
+<details>
+  <summary>🔴 [BBC] ユリエン・ティンバーのアレクサンデル・イサクに対するシャツ引きはPK判定が妥当：独立系パネルの見解</summary>
+  <div class="detail-box">
+    <ul>
+      <li>リヴァプール戦でユリエン・ティンバーがアレクサンデル・イサクのユニフォームを引っ張った場面について、プレミアリーグの独立系主審パネルが「PKが与えられるべきだった」との見解を発表。</li>
+      <li>試合中のピッチ上およびVARの介入では見過ごされたものの、後日の検証で判定の誤りが認められる形となった。</li>
+      <li>アーセナルの守備陣における細かいコンタクトプレーの是非や、VARの運用基準を巡り再び議論を呼ぶトピックとなっている。</li>
+    </ul>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c6n8d8kl125vo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+  </div>
+</details>
+
+<details>
+  <summary>🔴 [BBC] アーセナルがレバークーゼンの若手FWクリスチャン・コファネの動向を注視</summary>
+  <div class="detail-box">
+    <ul>
+      <li>将来的な前線のさらなる層の厚みと決定力強化のため、アーセナルがレバークーゼンのストライカーであるクリスチャン・コファネのパフォーマンスを継続的にモニタリングしていることが判明。</li>
+      <li>ミケル・アルテタ監督とエドゥ（当時体制含む）の後継スカウト陣は、若くポテンシャルの高いアタッカーの獲得を常に視野に入れており、コファネもそのリストに名を連ねている。</li>
+      <li>冬以降の移籍市場に向けて、クラブが有望なフォレスト候補のリストアップを加速させている現れと言える。</li>
+    </ul>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cjqlnl63ewzpo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <h2>⚔️ ビッグ6＆プレミアリーグ動向</h2>
-
 <details>
-  <summary>⚔️ 【マンチェスター・C】マレスカ体制のシティに暗雲…公式戦3連敗で中断期間中の見直しへ</summary>
+  <summary>⚔️ 【マンチェスター・シティ】エンツォ・マレスカ率いるシティの構造的弱点が露呈、公式戦3連敗</summary>
   <div class="detail-box">
     <ul>
-      <li>開幕7連勝と順調だったマンチェスター・シティだが、ノッティンガム・フォレスト戦での敗戦を含め公式戦3連敗を喫し、弱点が浮き彫りとなっている。</li>
-      <li>戦術的な脆さに加え、チーム内のメンタル面での乱れが指摘されており、マレスカ監督はこの代表ウィーク中に抜本的な修正を図る意向。</li>
-      <li>攻守のバランス再構築と選手層のマネジメントが、首位アーセナル追撃に向けた急務となっている。</li>
+      <li>シーズン開幕からの公式戦7連勝から一転し、ノッティンガム・フォレスト戦敗戦などで公式戦3連敗を喫したマンチェスター・シティの不振原因を現地メディアが分析。</li>
+      <li>マレスカ監督は代表ウィークを利用してチームの戦術的・心理的な立て直しを図る方針を示しているが、問題は単なる戦術の枠を超えている可能性が指摘されている。</li>
+      <li>絶対王者の牙城に陰りが見え始めたことで、今季のプレミアリーグ優勝争いは一気に混戦模様を呈してきた。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/09/manchester-city-enzo-maresca-premier-league" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/09/manchester-city-enzo-maresca-premier-league" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【マンチェスター・U】アストン・ヴィラと4-4劇的ドロー…キャリック監督の進退審議へ</summary>
+  <summary>⚔️ 【マンチェスター・ユナイテッド】アストン・ヴィラと壮絶な4-4の打ち合い、マイケル・キャリックの進退に注目</summary>
   <div class="detail-box">
     <ul>
-      <li>マンチェスター・ユナイテッドはアストン・ヴィラ戦で2点ビハインドを2度追いつき、アディショナルタイムのドルグのゴールで4-4と引き分けた。</li>
-      <li>今季リーグ戦でわずか1勝と低迷が続いており、クラブ上層部（ベラダCEOやウィルコックスTD）とラトクリフ卿が会議を開き、マイケル・キャリック監督の去就を決定する見通し。</li>
-      <li>後任候補として、前チェルシーなどのマウリシオ・ポチェッティーノ氏がオファー受諾の準備を進めていると報じられている。</li>
+      <li>オールド・トラッフォードで行われたマンチェスター・ユナイテッド対アストン・ヴィラの一戦は、2点差を2度もひっくり返す劇的な展開の末に4-4の引き分けに終わった。</li>
+      <li>後半アディショナルタイム（96分）にパトリック・ドルグが劇的なヘディング弾を叩き込み辛うじて敗戦を免れたものの、チームは降格圏付近に低迷。</li>
+      <li>試合後、苦境に立たされるマイケル・キャリック監督の去就を巡り、クラブ経営陣による緊急の首脳会談が開催される事態に発展している。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/manchester-united-aston-villa-premier-league-match-report" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/manchester-united-aston-villa-premier-league-match-report" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【リヴァプール】守護神アリソンがリヴァプールとの契約延長を希望</summary>
+  <summary>⚔️ 【マンチェスター・ユナイテッド】マウリシオ・ポチェッティーノがキャリックの後任として監督就任に前向き</summary>
   <div class="detail-box">
     <ul>
-      <li>リヴァプールの守護神アリソン・ベッカーが、今季終了後に満了を迎える現行契約を更新し、クラブに残留したいという意向を示した。</li>
-      <li>ベテランとなった今も世界最高峰のパフォーマンスを誇るアリソンに対し、クラブ側がどのような新契約を準備するかが注目される。</li>
-      <li>守護神の慰留は、新体制での安定したチーム作りに向けた最優先事項の一つとなっている。</li>
+      <li>成績不振で解任の噂が絶えないマイケル・キャリックの後任として、前アメリカ代表監督のマウリシオ・ポチェッティーノがマンチェスター・ユナイテッドからのオファーを受け入れる準備ができていると報じられた。</li>
+      <li>クラブのスポーツ部門を支えるオマール・ベラダやジェイソン・ウィルコックスらは少数株主のジム・ラトクリフ卿からの支持を維持しているものの、現場の立て直しは急務となっている。</li>
+      <li>名門立て直しの救世主としてポチェッティーノの名前が本格的に浮上しており、今後の動向から目が離せない。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cw62ypepq2m7o" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cqvg25pj36mvo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【チェルシー】FPL経由の情報漏洩を受け、全スタッフへ注意喚起を実施</summary>
+  <summary>⚔️ 【リヴァプール】守護神アリソン・ベッカーが契約延長を希望「シーズン終了後も残留したい」</summary>
   <div class="detail-box">
     <ul>
-      <li>チェルシーは、スタッフが『Fantasy Premier League (FPL)』で選手選択を行った際、FWジョアン・ペドロの負傷情報が未公表のまま予期せぬ形で漏洩したことを重く受け止め、警告を発した。</li>
-      <li>試合前のメンバー情報や怪我人の情報は重大な戦術的機密であり、ゲームアプリやSNSを介した情報漏洩に対して警戒感を強めている。</li>
-      <li>現代のプロサッカー界におけるデジタル情報管理の徹底ぶりが浮き彫りとなった事件である。</li>
+      <li>今季限りで現行契約が満了を迎えるリヴァプールの正GKアリソン・ベッカーが、クラブでの現役続行と契約延長を強く希望していることを明かした。</li>
+      <li>数々のタイトル獲得に貢献してきたベテランブラジル代表GKは、アンフィールドへの強い愛着を示しており、クラブ側との今後の交渉が注目される。</li>
+      <li>チームの守備の要として不可欠な存在であるだけに、リヴァプールサポーターにとっても安心感をもたらす朗報となっている。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c98rzr51rlvpo" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cw62ypepq2m7o?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【イングランド代表 / ボーンマス】ボーンマスDFジェームズ・ヒルがコンサ負傷に伴い英代表初招集</summary>
+  <summary>⚔️ 【チェルシー】ファンタジー・プレミアリーグ（FPL）の利用に関する内部リーク注意報を発令</summary>
   <div class="detail-box">
     <ul>
-      <li>ボーンマスでアピールを続けるDFジェームズ・ヒルが、負傷辞退したエズリ・コンサ（アストン・ヴィラ）の代役としてイングランド代表に初招集された。</li>
-      <li>ネーションズリーグのクロアチア戦に向けた抜擢であり、若手DFにとって代表定着に向けた絶好の機会となる。</li>
-      <li>守備陣の世代交代が進むイングランド代表において、新たな選択肢としてパフォーマンスが期待されている。</li>
+      <li>チェルシーのクラブスタッフに対し、FPL（公式ファンタジーゲーム）のチーム選択や操作を通じて負傷者情報などの極秘チームニュースを意図せず外部に漏らさないよう厳重な警告が出された。</li>
+      <li>ジョアン・ペドロの負傷離脱情報が、スタッフのFPLチーム選出の動きから事前に察知・拡散されてしまったことが発端となった。</li>
+      <li>現代のフットボール界におけるSNSやゲームアプリを通じた情報管理の難しさを浮き彫りにする珍事となっている。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/ckjrwrggjlryo" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c98rzr51rlvpo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【プレミアリーグ全般】監督解任劇はデータ時代においても「感情と錯覚」に支配されている（コラム）</summary>
+  <summary>⚔️ 【ブライトン】ディエゴ・ゴメスの鮮烈弾でブレントフォードを下し、驚異のリーグ2位に浮上</summary>
   <div class="detail-box">
     <ul>
-      <li>データ分析が極限まで進んだ現代フットボールにおいても、クラブ経営陣が監督解任を決断する理由は論理ではなく「雰囲気をコントロールしているという錯覚」に基づいていると分析する論考。</li>
-      <li>苦境に立たされるマンチェスター・Uのマイケル・キャリック監督らの事例を引き合いに、短期的な危機回避が必ずしも長期的な成績向上に繋がらない構造的課題を指摘。</li>
-      <li>監督人事におけるクラブ経営陣の心理的動機やプレッシャーの大きさを多角的に解き明かしている。</li>
+      <li>ディエゴ・ゴメスの鮮やかなスーパーゴールなどで10人のブレントフォードを退けたブライトンが、2026年11月時点で驚異のプレミアリーグ2位に躍り出た。</li>
+      <li>シーズン前の下馬評を覆し、欧州カップ戦と国内リーグの両方で高水準のパフォーマンスを維持するクラブの運営手腕と戦術的完成度に絶賛の声が集まっている。</li>
+      <li>もはや単なるダークホースの枠を超え、トップ争いを揺るがす実力派勢力として他のビッグクラブからも警戒される存在となっている。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/10/michael-carrick-firing-managers-premier-league" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/brighton-brentford-premier-league-match-report" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
-<h2>🔄 移籍の噂・ゴシップ (BBC Gossip等)</h2>
-
+<h2>🔄 移籍の噂・ゴシップ (BBC Gossip / 現地紙まとめ)</h2>
 <details>
-  <summary>🔄 【アーセナル/エンドリッキ】アーセナルがレアルの怪物FWエンドリッキ獲得に関心か（BBC Gossip）</summary>
+  <summary>🔄 【アーセナル/エンドリック】レアル・マドリードのブラジル代表FWエンドリックに関心（BBC / 各種ゴシップ）</summary>
   <div class="detail-box">
     <ul>
-      <li>アーセナルがレアル・マドリードに所属するブラジル代表の10代FWエンドリッキ（Endrick）の状況を注視していると報じられた。</li>
-      <li>レアル・マドリードでの出場時間や育成環境を踏まえ、前線の攻撃力をスケールアップさせたいアーセナルが獲得の可能性を探っている模様。</li>
-      <li>世界的な超新星の動向だけに、今後の移籍市場でどのような動きを見せるか関心が集まっている。</li>
+      <li>レアル・マドリードで出場の機会を模索している若き天才FWエンドリックに対し、アーセナルが獲得の可能性を調査すべくリストアップしていると報じられた。</li>
+      <li>世界的有望株である同選手を巡っては、将来の攻撃陣のオプションとしてプレミアリーグの複数クラブが動向を注視している。</li>
+      <li>アーセナルは冬または夏の移籍市場に向けて、さらなるアタッカーの補強として若手の逸材に目を光らせている。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cq8jzjz9x23jo" target="_blank">🔗 元記事(英語)を開く ※外部通信発生</a></p>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cq8jzjz9x23jo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+  </div>
+</details>
+
+<details>
+  <summary>🔄 【リヴァプール/ジェレミー・フリンポン】右サイドバックのジェレミー・フリンポン、アンフィールド退団の噂を否定（BBCゴシップ）</summary>
+  <div class="detail-box">
+    <ul>
+      <li>リヴァプールの攻撃的右サイドバックであるジェレミー・フリンポンについて、一部でささやかれていた移籍の噂を本人が一蹴し、チーム残留を強調。</li>
+      <li>攻守の主軸として高いパフォーマンスを維持する同選手は、クロップ後（あるいは現体制）のリヴァプールにおいて不可欠なピースとみなされている。</li>
+      <li>他クラブからの関心が報じられていたものの、当面はアンフィールドでのプレイに専念する構え。</li>
+    </ul>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cq8jzjz9x23jo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+  </div>
+</details>
+
+<details>
+  <summary>🔄 【ニューカッスル＆サンダーランド/ディオン・ベリョ】クロアチア代表FWディオン・ベリョ争奪戦に参戦（BBCゴシップ）</summary>
+  <div class="detail-box">
+    <ul>
+      <li>国内外で高い評価を受けるクロアチア代表ストライカー、ディオン・ベリョに対し、ニューカッスル・ユナイテッドとサンダーランドが獲得に向けた関心を示している。</li>
+      <li>得点力不足の解消や前線のオプション拡充を目指す両クラブにとって、将来性豊かな大型フォワードは魅力的なターゲットとなっている。</li>
+      <li>今後のスカウティング次第では、冬の移籍市場での具体的なオファー提示へと発展する可能性が囁かれている。</li>
+    </ul>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cq8jzjz9x23jo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details></div>
-    <div id="stats" class="content"><p>スタッツデータなし</p></div>
+    <div id="stats" class="content"></div>
+    <div id="table" class="content"><p>順位表取得エラー: Failed to parse: '[site.api.espn.com' is not a valid host or port</p></div>
   </div>
 <script>
   function switchTab(id, el) {
@@ -234,7 +293,6 @@
     document.getElementById(id).classList.add('active');
     el.classList.add('active');
   }
-  // 家のWi-Fiで開いた際にスマホ本体へ自動保存（オフライン対策）
   try {
     localStorage.setItem('arsenal_hub_cache', document.getElementById('app').innerHTML);
   } catch(e) {}
