@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arsenal Daily Hub</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 680px; margin: 0 auto; padding: 10px; background: #111; color: #eaeaea; font-size: 15px; line-height: 1.55; }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ef0107; padding-bottom: 6px; }
+  .header h1 { font-size: 1.2rem; margin: 0; color: #ff4d4d; }
+  .next-box { background: #1c1c1c; border-left: 4px solid #ef0107; padding: 8px 12px; margin: 10px 0; font-size: 0.9rem; border-radius: 4px; }
+  .tabs { display: flex; gap: 6px; margin: 12px 0; }
+  .tab-btn { flex: 1; padding: 10px; background: #222; color: #aaa; border: 1px solid #333; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; user-select: none; }
+  .tab-btn.active { background: #ef0107; color: #fff; border-color: #ef0107; }
+  .content { display: none; }
+  .content.active { display: block; }
+  h2 { font-size: 1.05rem; background: #1e1e1e; padding: 6px 10px; border-left: 3px solid #ef0107; margin: 18px 0 8px; }
+  details { background: #181818; border: 1px solid #2a2a2a; border-radius: 6px; margin-bottom: 8px; padding: 8px 10px; }
+  summary { font-weight: bold; cursor: pointer; outline: none; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  .detail-box { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #333; font-size: 0.92rem; color: #ccc; }
+  .detail-box ul { padding-left: 18px; margin: 4px 0; }
+  .detail-box li { margin-bottom: 4px; }
+  .ext-link { text-align: right; margin: 4px 0 0; font-size: 0.8rem; }
+  a { color: #66b3ff; text-decoration: none; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.82rem; }
+  th, td { border: 1px solid #2a2a2a; padding: 5px 6px; }
+  th { background: #222; }
+  tr:nth-child(even) { background: #181818; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔴 Arsenal & PL Hub</h1>
+    <small>11/11 20:39 更新</small>
+  </div>
+  <div class='next-box'>次回日程データ取得中または予定なし</div>
+  <div class="tabs">
+    <div class="tab-btn active" onclick="switchTab('news', this)">📰 ニュース＆移籍</div>
+    <div class="tab-btn" onclick="switchTab('stats', this)">📊 前回試合スタッツ</div>
+  </div>
+  <div id="news" class="content active"><p>ニュース要約エラー: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}</p></div>
+  <div id="stats" class="content"><p>FotMob API ステータス: 404</p></div>
+<script>
+  function switchTab(id, el) {
+    document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    el.classList.add('active');
+  }
+</script>
+</body>
+</html>
