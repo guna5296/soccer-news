@@ -2,9 +2,8 @@ name: Arsenal Daily Update
 
 on:
   schedule:
-    # UTC 20:30 = 日本時間 朝5:30 に自動実行（6時までに確実に完了させるため）
     - cron: '30 20 * * *'
-  workflow_dispatch: # 手動で今すぐテスト実行するボタン
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,13 +11,14 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: pip install google-genai feedparser requests pytz markdown beautifulsoup4
+        run: pip install google-genai feedparser requests pytz markdown beautifulsoup4 cloudscraper
       - name: Run script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -28,5 +28,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Update daily Arsenal news" || exit 0
+          git commit -m "Update daily Arsenal hub" || exit 0
           git push
