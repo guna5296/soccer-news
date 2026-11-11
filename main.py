@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import requests
 import cloudscraper
@@ -19,7 +20,6 @@ client = genai.Client(
     http_options=types.HttpOptions(timeout=60000)
 )
 
-# FotMob等のCloudflareブロックを回避するスクレイパー
 scraper = cloudscraper.create_scraper(
     browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
 )
@@ -30,12 +30,28 @@ HEADERS = {
     "Accept-Language": "ja,en-US;q=0.9,en;q=0.8"
 }
 
-HTTPS = "https://"
 ARSENAL_ESPN_ID = "359"
 ARSENAL_FOTMOB_ID = "9825"
 
+# コピー時にドメイン名がMarkdownリンク化されるのを100%防ぐURL生成関数
+def build_url(*parts):
+    raw = "".join(parts)
+    # 万が一 [xxx](yyy) のようなリンク記法が紛れ込んでも自動除去
+    raw = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', raw)
+    return raw.replace("[", "").replace("]", "")
+
+# ドメイン部品（分割定義で自動リンク化を完全防止）
+P_HTTPS = "https" + "://"
+D_GUARDIAN = "www.theguardian" + ".com"
+D_BBC = "feeds.bbci" + ".co.uk"
+D_ARSEBLOG = "arseblog" + ".news"
+D_FLONDON = "www.football" + ".london"
+D_ESPN = "site.api.espn" + ".com"
+D_FOTMOB = "www.fotmob" + ".com"
+D_FPL = "fantasy.premierleague" + ".com"
+
 # --------------------------------------------------
-# 1. Geminiモデル自動選択 & 大量ニュース翻訳（Arseblog / Football.London 追加）
+# 1. Geminiモデル自動選択 & 大量ニュース翻訳
 # --------------------------------------------------
 def generate_with_best_model(prompt):
     candidates = ["gemini-3.8-flash", "gemini-3.0-flash", "gemini-3-flash"]
@@ -63,15 +79,14 @@ def generate_with_best_model(prompt):
     return f"<p>ニュース要約エラー: {last_err}</p>"
 
 def get_all_uk_news():
-    # アーセナル専門メディア（Arseblog, Football.London）やSky Sportsを追加して大幅増量
     feeds = {
-        "Arsenal (Arseblog)": (HTTPS + "arseblog.news/feed/", 7),
-        "Arsenal (Football.London)": (HTTPS + "www.football.london/arsenal-fc/?service=rss", 6),
-        "Arsenal (Guardian)": (HTTPS + "www.theguardian.com/football/arsenal/rss", 6),
-        "Arsenal (BBC)": (HTTPS + "feeds.bbci.co.uk/sport/football/teams/arsenal/rss.xml", 5),
-        "Premier League (Guardian)": (HTTPS + "www.theguardian.com/football/premierleague/rss", 8),
-        "Premier League (BBC)": (HTTPS + "feeds.bbci.co.uk/sport/football/premier-league/rss.xml", 6),
-        "Transfer Gossip (BBC)": (HTTPS + "feeds.bbci.co.uk/sport/football/gossip/rss.xml", 1)
+        "Arsenal (Arseblog)": (build_url(P_HTTPS, D_ARSEBLOG, "/feed/"), 7),
+        "Arsenal (Football.London)": (build_url(P_HTTPS, D_FLONDON, "/arsenal-fc/?service=rss"), 6),
+        "Arsenal (Guardian)": (build_url(P_HTTPS, D_GUARDIAN, "/football/arsenal/rss"), 6),
+        "Arsenal (BBC)": (build_url(P_HTTPS, D_BBC, "/sport/football/teams/arsenal/rss.xml"), 5),
+        "Premier League (Guardian)": (build_url(P_HTTPS, D_GUARDIAN, "/football/premierleague/rss"), 8),
+        "Premier League (BBC)": (build_url(P_HTTPS, D_BBC, "/sport/football/premier-league/rss.xml"), 6),
+        "Transfer Gossip (BBC)": (build_url(P_HTTPS, D_BBC, "/sport/football/gossip/rss.xml"), 1)
     }
     
     raw_data = []
@@ -96,8 +111,8 @@ def get_all_uk_news():
 
     prompt = f"""
 あなたはアーセナルとプレミアリーグ専門の翻訳編集者です。
-以下の現地メディア（Arseblog, Football.London, The Guardian, BBC）の最新記事を日本語に翻訳・詳細要約し、指定のHTMLタグ構造のみで出力してください。
-※コードブロック（```html等）は絶対につけないでください。できるだけ多くの記事を漏らさず掲載してください。
+以下の現地メディアの最新記事を日本語に翻訳・詳細要約し、指定のHTMLタグ構造のみで出力してください。
+※コードブロック（```html等）は絶対につけないでください。できるだけ多くの記事を掲載してください。
 
 <h2>🔴 アーセナル最新ニュース（現地番記者・専門メディア）</h2>
 アーセナルに関する記事をすべて抽出し（12〜18件程度）、1記事ずつ以下の折りたたみ形式で出力：
@@ -117,7 +132,7 @@ def get_all_uk_news():
 マンチェスターC、リヴァプール、チェルシー、マンチェスターU、トッテナム等の主要記事（8〜12件程度）を <details><summary>⚔️ 【クラブ名】[日本語タイトル]</summary>... の形式で出力。
 
 <h2>🔄 移籍の噂・ゴシップ (BBC Gossip / 現地紙まとめ)</h2>
-アーセナルを最優先に、プレミアリーグの移籍の噂をすべて1件ずつ <details><summary>🔄 【クラブ名/選手名】[移籍の噂の見出し（情報元の新聞名）]</summary>... の形式で詳しく出力。
+アーセナルを最優先に、プレミアリーグの移籍の噂を1件ずつ <details><summary>🔄 【クラブ名/選手名】[移籍の噂の見出し（情報元の新聞名）]</summary>... の形式で詳しく出力。
 
 【入力データ】:
 {chr(10).join(raw_data)}
@@ -130,10 +145,9 @@ def get_all_uk_news():
 def get_match_and_stats():
     jst = pytz.timezone("Asia/Tokyo")
     now_utc = datetime.now(timezone.utc)
-    next_html = "<div class='next-box'>次回予定なし</div>"
-    stats_md = ""
+    next_html = "<div class='next-box'>次回試合予定データ取得中</div>"
+    stats_md = "<p>スタッツデータなし</p>"
 
-    # --- A. ESPN APIから「過去の試合」と「未来の試合(?fixture=true)」を確実に取得 ---
     upcoming_list = []
     finished_list = []
     leagues = [
@@ -143,10 +157,10 @@ def get_match_and_stats():
         ("eng.league_cup", "Carabao Cup")
     ]
 
+    # --- A. ESPN APIから過去試合と未来試合を取得 ---
     for lg_code, lg_name in leagues:
-        # 1) 終了した試合の取得
         try:
-            url_past = f"{HTTPS}[site.api.espn.com/apis/site/v2/sports/soccer/](https://site.api.espn.com/apis/site/v2/sports/soccer/){lg_code}/teams/{ARSENAL_ESPN_ID}/schedule"
+            url_past = build_url(P_HTTPS, D_ESPN, f"/apis/site/v2/sports/soccer/{lg_code}/teams/{ARSENAL_ESPN_ID}/schedule")
             res_past = requests.get(url_past, headers=HEADERS, timeout=8).json()
             for ev in res_past.get("events", []):
                 ev_dt = datetime.fromisoformat(ev["date"].replace("Z", "+00:00"))
@@ -155,18 +169,16 @@ def get_match_and_stats():
                 ev["_lg_name"] = lg_name
                 ev["_dt"] = ev_dt
                 if state == "post" or ev_dt < now_utc:
-                    # スコアが入っている試合のみ完了扱いにする
                     comps = ev.get("competitions", [{}])[0].get("competitors", [])
                     if comps and "score" in comps[0]:
                         finished_list.append(ev)
                 elif state == "pre" or ev_dt >= now_utc:
                     upcoming_list.append(ev)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"ESPN past err ({lg_code}): {e}", flush=True)
 
-        # 2) 未来の試合の取得 (?fixture=true を付与)
         try:
-            url_fut = f"{HTTPS}[site.api.espn.com/apis/site/v2/sports/soccer/](https://site.api.espn.com/apis/site/v2/sports/soccer/){lg_code}/teams/{ARSENAL_ESPN_ID}/schedule?fixture=true"
+            url_fut = build_url(P_HTTPS, D_ESPN, f"/apis/site/v2/sports/soccer/{lg_code}/teams/{ARSENAL_ESPN_ID}/schedule?fixture=true")
             res_fut = requests.get(url_fut, headers=HEADERS, timeout=8).json()
             for ev in res_fut.get("events", []):
                 ev_dt = datetime.fromisoformat(ev["date"].replace("Z", "+00:00"))
@@ -175,11 +187,34 @@ def get_match_and_stats():
                     ev["_lg_name"] = lg_name
                     ev["_dt"] = ev_dt
                     upcoming_list.append(ev)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"ESPN fut err ({lg_code}): {e}", flush=True)
 
-    # 次回日程の決定
-    if upcoming_list:
+    # もしESPNのリストに次回試合がなければFPL公式APIから補完
+    if not upcoming_list:
+        try:
+            boot_url = build_url(P_HTTPS, D_FPL, "/api/bootstrap-static/")
+            boot = requests.get(boot_url, headers=HEADERS, timeout=8).json()
+            t_map = {t["id"]: t["name"] for t in boot.get("teams", [])}
+            ars_id = next((t["id"] for t in boot.get("teams", []) if t["name"] == "Arsenal"), 1)
+            fix_url = build_url(P_HTTPS, D_FPL, "/api/fixtures/")
+            fixes = requests.get(fix_url, headers=HEADERS, timeout=8).json()
+            fpl_up = [f for f in fixes if (f.get("team_h") == ars_id or f.get("team_a") == ars_id) and not f.get("finished") and f.get("kickoff_time")]
+            if fpl_up:
+                nxt = fpl_up[0]
+                utc_dt = datetime.fromisoformat(nxt["kickoff_time"].replace("Z", "+00:00"))
+                jst_dt = utc_dt.astimezone(jst)
+                h_name = t_map.get(nxt["team_h"], "Home")
+                a_name = t_map.get(nxt["team_a"], "Away")
+                next_html = (
+                    f"<div class='next-box'>"
+                    f"<b>⏰ 次回試合: {h_name} vs {a_name}</b><br>"
+                    f"日本時間: <span style='color:#ffcc00;font-weight:bold;'>{jst_dt.strftime('%Y年%m月%d日(%a) %H:%M')}</span> キックオフ (PL 第{nxt.get('event', '-')}節)"
+                    f"</div>"
+                )
+        except Exception as e:
+            print(f"FPL err: {e}", flush=True)
+    else:
         upcoming_list.sort(key=lambda x: x["_dt"])
         nxt = upcoming_list[0]
         jst_dt = nxt["_dt"].astimezone(jst)
@@ -193,17 +228,16 @@ def get_match_and_stats():
             f"</div>"
         )
 
-    # --- B. FotMob (cloudscraper経由) から超詳細スタッツ・地上戦デュエル・個人採点を取得 ---
+    # --- B. FotMobから超詳細スタッツ・地上戦デュエル・個人採点を取得 ---
     fotmob_lines = []
     try:
-        fm_team_url = f"{HTTPS}[www.fotmob.com/api/teams?id=](https://www.fotmob.com/api/teams?id=){ARSENAL_FOTMOB_ID}&ccode3=JPN"
+        fm_team_url = build_url(P_HTTPS, D_FOTMOB, f"/api/teams?id={ARSENAL_FOTMOB_ID}&ccode3=JPN")
         fm_res = scraper.get(fm_team_url, timeout=10)
         if fm_res.status_code == 200:
             fm_data = fm_res.json()
             all_fix = fm_data.get("fixtures", {}).get("allFixtures", {}).get("fixtures", [])
             
-            # もしESPNで次回日程が取れていなかった場合のバックアップ
-            if "次回予定なし" in next_html:
+            if "取得中" in next_html:
                 fm_up = [m for m in all_fix if not m.get("status", {}).get("started")]
                 if fm_up:
                     nxt_fm = fm_up[0]
@@ -219,7 +253,7 @@ def get_match_and_stats():
             fm_fin = [m for m in all_fix if m.get("status", {}).get("finished")]
             if fm_fin:
                 last_match_id = fm_fin[-1]["id"]
-                det_url = f"{HTTPS}[www.fotmob.com/api/matchDetails?matchId=](https://www.fotmob.com/api/matchDetails?matchId=){last_match_id}&lang=ja"
+                det_url = build_url(P_HTTPS, D_FOTMOB, f"/api/matchDetails?matchId={last_match_id}&lang=ja")
                 det_res = scraper.get(det_url, timeout=10)
                 if det_res.status_code == 200:
                     d_json = det_res.json()
@@ -228,7 +262,6 @@ def get_match_and_stats():
                     score_s = d_json.get("header", {}).get("status", {}).get("scoreStr", "-")
                     fotmob_lines.append(f"### {h_team} {score_s} {a_team}\n")
 
-                    # 1) ゴール＆シュート詳細 (xG / xGOT / 部位 / 状況)
                     shots = d_json.get("content", {}).get("shotmap", {}).get("shots", [])
                     if shots:
                         fotmob_lines.append("#### 🎯 ゴール＆シュート詳細 (xG / xGOT)")
@@ -242,12 +275,11 @@ def get_match_and_stats():
                             fotmob_lines.append(f"| {s.get('min')}' | **{s.get('playerName')}** | {r_mark} | {s.get('shotType')} | {s.get('situation')} | {xg} | {xgot} |")
                         fotmob_lines.append("")
 
-                    # 2) アーセナル選手個人の採点・出場時間・地上戦デュエル・主要スタッツ
                     lineup_data = d_json.get("content", {}).get("lineup", {})
                     for side in ["homeTeam", "awayTeam"]:
                         t_obj = lineup_data.get(side, {})
                         if str(t_obj.get("id")) == ARSENAL_FOTMOB_ID or "Arsenal" in t_obj.get("name", ""):
-                            fotmob_lines.append("#### 👥 アーセナル選手採点・個人スタッツ (先発＆交代)")
+                            fotmob_lines.append("#### 👥 アーセナル選手採点・地上戦デュエル・個人スタッツ")
                             fotmob_lines.append("| 選手 | ポジ | 採点 | 時間 | G/A | シュート | パス成功 | 地上デュエル | 空中戦 |")
                             fotmob_lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
                             
@@ -259,7 +291,6 @@ def get_match_and_stats():
                                 if isinstance(rating, (int, float)):
                                     rating = f"**{rating:.1f}**"
                                 
-                                # 個別スタッツ辞書を解析
                                 p_stats = {}
                                 for st_group in p.get("stats", []):
                                     for st_key, st_val in st_group.get("stats", {}).items():
@@ -267,7 +298,7 @@ def get_match_and_stats():
                                 
                                 mins = p_stats.get("Minutes played", "-")
                                 if mins == "-" and p in t_obj.get("subs", []):
-                                    continue  # 未出場ベンチ選手はスキップ
+                                    continue
                                 goals = p_stats.get("Goals", 0)
                                 assists = p_stats.get("Assists", 0)
                                 ga_str = f"{goals}G {assists}A" if (goals or assists) else "-"
@@ -279,7 +310,6 @@ def get_match_and_stats():
                                 fotmob_lines.append(f"| **{p_name}** | {pos} | {rating} | {mins}' | {ga_str} | {sh} | {pa} | {g_duel} | {a_duel} |")
                             fotmob_lines.append("")
 
-                    # 3) チーム全項目詳細スタッツ（xG、ボックス内タッチ、パス、守備、地上戦・空中戦デュエル勝利数）
                     stats_groups = d_json.get("content", {}).get("stats", {}).get("Periods", {}).get("All", {}).get("stats", [])
                     for group in stats_groups:
                         fotmob_lines.append(f"#### 📊 {group.get('title', 'スタッツ')}")
@@ -299,7 +329,7 @@ def get_match_and_stats():
         stats_md = markdown.markdown("\n".join(fotmob_lines), extensions=['tables'])
         return next_html, stats_md
 
-    # --- C. 万が一FotMobがブロックされた場合はESPNからチームスタッツ＋選手個人出場スタッツを出力 ---
+    # --- C. FotMobが弾かれた場合のESPN詳細スタッツ＆個人スタッツ ---
     if finished_list:
         try:
             finished_list.sort(key=lambda x: x["_dt"])
@@ -308,7 +338,7 @@ def get_match_and_stats():
             lg_code = last_ev["_lg_code"]
             lg_name = last_ev["_lg_name"]
 
-            sum_url = f"{HTTPS}[site.api.espn.com/apis/site/v2/sports/soccer/](https://site.api.espn.com/apis/site/v2/sports/soccer/){lg_code}/summary?event={last_id}"
+            sum_url = build_url(P_HTTPS, D_ESPN, f"/apis/site/v2/sports/soccer/{lg_code}/summary?event={last_id}")
             sum_res = requests.get(sum_url, headers=HEADERS, timeout=10).json()
             
             comp = sum_res["header"]["competitions"][0]
@@ -327,7 +357,6 @@ def get_match_and_stats():
             
             lines = [f"### {h_name} {h_score} - {a_score} {a_name} ({lg_name})\n"]
 
-            # 1) ゴール＆カードイベント
             details = comp.get("details", [])
             if details:
                 lines.append("#### ⚽ ゴール＆試合イベント詳細")
@@ -343,12 +372,11 @@ def get_match_and_stats():
                     lines.append(f"| {clock} | {t_label} | **{p_name}** | {d_type} |")
                 lines.append("")
 
-            # 2) アーセナル選手個人の出場スタッツ一覧（先発・交代・シュート・ファウル等）
             rosters = sum_res.get("rosters", [])
             for r in rosters:
                 if str(r.get("team", {}).get("id", "")) == ARSENAL_ESPN_ID:
                     lines.append("#### 👥 アーセナル出場選手＆個人スタッツ")
-                    lines.append("| 選手 | ポジ | 状態 | シュート(枠内) | G / A | タックル/ファウル |")
+                    lines.append("| 選手 | ポジ | 出場 | シュート(枠内) | G / A | タックル/ファウル |")
                     lines.append("| :--- | :---: | :---: | :---: | :---: | :---: |")
                     for ath in r.get("roster", []):
                         starter = "先発" if ath.get("starter") else ("交代出場" if ath.get("subbedIn") else "")
@@ -359,11 +387,10 @@ def get_match_and_stats():
                         st_map = {s["name"]: s["displayValue"] for s in ath.get("stats", [])}
                         sh = f"{st_map.get('totalShots', '0')} ({st_map.get('shotsOnTarget', '0')})"
                         ga = f"{st_map.get('totalGoals', '0')}G / {st_map.get('goalAssists', '0')}A"
-                        tf = f"F:{st_map.get('foulsCommitted', '0')} / 被:{st_map.get('foulsSuffered', '0')}"
+                        tf = f"T:{st_map.get('totalTackles', '0')} / F:{st_map.get('foulsCommitted', '0')}"
                         lines.append(f"| **{p_name}** | {pos} | {starter} | {sh} | {ga} | {tf} |")
                     lines.append("")
 
-            # 3) チーム詳細スタッツ
             box_teams = sum_res.get("boxscore", {}).get("teams", [])
             if len(box_teams) >= 2:
                 h_stats, a_stats = {}, {}
@@ -415,11 +442,11 @@ def get_match_and_stats():
     return next_html, stats_md
 
 # --------------------------------------------------
-# 3. プレミアリーグ最新順位表の取得（第3のタブ用）
+# 3. プレミアリーグ最新順位表の取得
 # --------------------------------------------------
 def get_pl_standings():
     try:
-        url = f"{HTTPS}[site.api.espn.com/apis/v2/sports/soccer/eng.1/standings](https://site.api.espn.com/apis/v2/sports/soccer/eng.1/standings)"
+        url = build_url(P_HTTPS, D_ESPN, "/apis/v2/sports/soccer/eng.1/standings")
         res = requests.get(url, headers=HEADERS, timeout=10).json()
         entries = res.get("children", [{}])[0].get("standings", {}).get("entries", [])
         if not entries:
