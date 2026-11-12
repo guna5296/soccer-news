@@ -3,351 +3,437 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Arsenal Daily Hub</title>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 700px; margin: 0 auto; padding: 10px; background: #111; color: #eaeaea; font-size: 15px; line-height: 1.55; }
-  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ef0107; padding-bottom: 6px; }
-  .header h1 { font-size: 1.2rem; margin: 0; color: #ff4d4d; }
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 720px; margin: 0 auto; padding: 10px; background: #111; color: #eaeaea; font-size: 15px; line-height: 1.6; overscroll-behavior-y: contain; }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ef0107; padding-bottom: 8px; }
+  .header h1 { font-size: 1.15rem; margin: 0; color: #ff4d4d; }
+  .reload-btn { background: #222; color: #fff; border: 1px solid #444; padding: 5px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
+  .reload-btn:active { background: #ef0107; }
+  #ptr-indicator { text-align: center; color: #ffcc00; font-size: 0.85rem; height: 0; overflow: hidden; transition: height 0.2s; }
   .next-box { background: #1c1c1c; border-left: 4px solid #ef0107; padding: 8px 12px; margin: 10px 0; font-size: 0.9rem; border-radius: 4px; }
   .tabs { display: flex; gap: 5px; margin: 12px 0; }
-  .tab-btn { flex: 1; padding: 9px 4px; background: #222; color: #aaa; border: 1px solid #333; border-radius: 6px; font-weight: bold; font-size: 0.88rem; cursor: pointer; text-align: center; user-select: none; }
+  .tab-btn { flex: 1; padding: 9px 4px; background: #222; color: #aaa; border: 1px solid #333; border-radius: 6px; font-weight: bold; font-size: 0.84rem; cursor: pointer; text-align: center; user-select: none; }
   .tab-btn.active { background: #ef0107; color: #fff; border-color: #ef0107; }
-  .content { display: none; }
+  .content { display: none; min-height: 70vh; overflow-x: auto; }
   .content.active { display: block; }
   h2 { font-size: 1.05rem; background: #1e1e1e; padding: 6px 10px; border-left: 3px solid #ef0107; margin: 18px 0 8px; }
+  h3 { font-size: 1rem; color: #ff9999; margin: 16px 0 6px; border-bottom: 1px solid #333; padding-bottom: 4px; }
   details { background: #181818; border: 1px solid #2a2a2a; border-radius: 6px; margin-bottom: 8px; padding: 8px 10px; }
   summary { font-weight: bold; cursor: pointer; outline: none; list-style: none; }
   summary::-webkit-details-marker { display: none; }
-  .detail-box { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #333; font-size: 0.92rem; color: #ccc; }
+  .detail-box { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #333; font-size: 0.92rem; color: #ddd; }
   .detail-box ul { padding-left: 18px; margin: 4px 0; }
-  .detail-box li { margin-bottom: 4px; }
+  .detail-box li { margin-bottom: 6px; }
   .ext-link { text-align: right; margin: 4px 0 0; font-size: 0.8rem; }
   a { color: #66b3ff; text-decoration: none; }
-  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.8rem; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.78rem; }
   th, td { border: 1px solid #2a2a2a; padding: 5px 6px; }
   th { background: #222; }
   tr:nth-child(even) { background: #181818; }
 </style>
 </head>
 <body>
+  <div id="ptr-indicator">⬇️ 指を離すと最新データに更新します...</div>
   <div id="app">
     <div class="header">
       <h1>🔴 Arsenal & PL Hub</h1>
-      <small>2026/11/12 10:59 更新</small>
+      <button class="reload-btn" onclick="forceReload()">🔄 2026/11/12 19:57 更新</button>
     </div>
-    <div class='next-box'><b>⏰ 次回試合: Newcastle United vs Arsenal</b><br>日本時間: <span style='color:#ffcc00;font-weight:bold;'>2026年11月22日(Sun) 02:30</span> キックオフ (Premier League)</div>
+    <div class='next-box'><b>⏰ 次回PL試合: Newcastle vs Arsenal</b><br>日本時間: <span style='color:#ffcc00;font-weight:bold;'>2026年11月22日(Sun) 02:30</span> キックオフ (PL 第11節)</div>
     <div class="tabs">
-      <div class="tab-btn active" onclick="switchTab('news', this)">📰 ニュース</div>
-      <div class="tab-btn" onclick="switchTab('stats', this)">📊 前回スタッツ</div>
-      <div class="tab-btn" onclick="switchTab('table', this)">🏆 PL順位表</div>
+      <div class="tab-btn active" id="btn-news" onclick="switchTab(0)">📰 ニュース＆U21</div>
+      <div class="tab-btn" id="btn-stats" onclick="switchTab(1)">📊 前回試合スタッツ</div>
+      <div class="tab-btn" id="btn-table" onclick="switchTab(2)">🏆 順位＆個人ランク</div>
     </div>
-    <div id="news" class="content active"><h2>🔴 アーセナル最新ニュース（現地番記者・専門メディア）</h2>
-
+    <div id="news" class="content active"><h2>🔴 アーセナル・トップチーム最新ニュース（12〜15件）</h2>
 <details>
-  <summary>🔴 [Arseblog] スビメンディが退団説を即座に否定「全く根拠がない」</summary>
+  <summary>🔴 [Arseblog] マルティン・スビメンディがアトレティコ・マドリードからの関心や退団の噂を完全否定</summary>
   <div class="detail-box">
     <ul>
-      <li>マルティン・スビメンディは、アーセナルでの生活に不満を抱いており今冬に退団するのではないかというスペインメディアからの噂を真っ向から否定しました。</li>
-      <li>「噂には全く根拠がない。メディアは将来に関する報道を行う際にもっと慎重になるべきだ」と強い語調で語り、クラブへのコミットメントを強調しています。</li>
-      <li>ミケル・アルテタ監督がトーマス・パーティの後継者として熱望し獲得した背景があり、今期の戦術的キーマンとして今後の過密日程でも中心的な役割を担う見通しです。</li>
+      <li><b>要点・背景：</b>1月の移籍市場に向けてスペインメディアなどでアトレティコ・マドリードからの関心が報じられていた中、MFマルティン・スビメンディ本人が直接メディアの前に立って不満説や移籍の噂を一蹴した。</li>
+      <li><b>発言・引用：</b>スビメンディは自身の去就を巡る報道に対して「全くもってそんな事実はない。メディアには自分の将来についての報道にもっと慎重になってほしい」と述べ、自身の驚きを率直に語った。</li>
+      <li><b>戦術・詳細データ：</b>ミケル・アルテタ監督がトーマス・パルテラの長期的な後継者として獲得を熱望した同選手だが、今季は中盤での定位置確保に苦しんでおり、それが移籍憶測の火種となっていた。</li>
+      <li><b>今後の見通し：</b>本人がクラブへの強いコミットメントを示したことで一連の騒動は一旦落ち着く見込みだが、冬の移籍市場に向けて他クラブからのアプローチが続くか引き続き注視される。</li>
     </ul>
-    <p class="ext-link"><a href="https://arseblog.news/2026/11/theres-absolutely-nothing-to-it-zubimendi-dismisses-exit-talk/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://arseblog.news/2026/11/theres-absolutely-nothing-to-it-zubimendi-dismisses-exit-talks/" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [Arseblog] アトレティコ・マドリードが1月にスビメンディ獲得を画策か</summary>
+  <summary>🔴 [Arseblog] デヴィッド・ラヤとアレッシア・ルッソが2026年FIFPROワールド11に選出</summary>
   <div class="detail-box">
     <ul>
-      <li>スペイン現地からの報道によると、アトレティコ・マドリードが来年1月の移籍市場でスビメンディの獲得に向けた動きを見せていると報じられました。</li>
-      <li>アトレティコは彼がレアル・ソシエダに在籍していた頃から長年関心を寄せており、中盤の補強ターゲットとして再評価している模様です。</li>
-      <li>しかし、アーセナル側は中盤の核として不可欠な存在とみなしており、今冬の放出に応じる可能性は限りなく低いとみられています。</li>
+      <li><b>要点・背景：</b>世界75カ国以上のプロサッカー選手による投票によって選出される「2026年FIFPROワールド11」が発表され、アーセナルからGKデヴィッド・ラヤが栄誉ある選出を果たした。</li>
+      <li><b>発言・引用：</b>過去1年間にわたる圧倒的な安定感とパフォーマンスが同僚プロ選手たちから高く評価され、世界最高峰のゴールキーパー陣のショートリストから見事ベスト11の座を射止めた。</li>
+      <li><b>戦術・詳細データ：</b>ラヤは今季もアーセナルの堅守を最後尾から支え続けており、チャンピオンズリーグやプレミアリーグでの数々の決定的なセーブが今回の国際的な賞賛に直結している。</li>
+      <li><b>今後の見通し：</b>個人としての大きな栄誉を弾みに、現在首位を走るプレミアリーグおよびチャンピオンズリーグの過密日程においても、守護神としてチームを勝利へ導くパフォーマンスが期待される。</li>
     </ul>
-    <p class="ext-link"><a href="https://arseblog.news/2026/11/report-atletico-madrid-eyeing-january-deal-for-zubimendi/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://arseblog.news/2026/11/raya-russo-and-berta-scoop-gongs/" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [Arseblog] ダビド・ラヤ、アレッシア・ルッソ、ベルタがFIFPRO世界ベスト11を受賞</summary>
+  <summary>🔴 [Arseblog] ハル・シティ戦を1-0で制したアルテタ監督がチームの粘り強さを絶賛</summary>
   <div class="detail-box">
     <ul>
-      <li>世界75カ国のプロ選手による投票で決定される2026年FIFPRO World 11（ベストイレブン）が発表され、アーセナルからダビド・ラヤとアレッシア・ルッソらが選出されました。</li>
-      <li>男子チームの守護神ダビド・ラヤは、過去12ヶ月間に渡る驚異的な安定感と決定的なセービング技術が高く評価され、同僚プロからの絶対的な信頼を獲得しました。</li>
-      <li>女子チームのエースであるアレッシア・ルッソも世界最高のフォワードの一人として選ばれ、クラブの国際的評価を大いに高めています。</li>
+      <li><b>要点・背景：</b>エミレーツ・スタジアムで行われたハル・シティ戦、アーセナルは苦戦しながらも主将マルティン・ウーデゴールが後半に決勝点を挙げ、公式戦5連勝を達成して首位の座を堅守した。</li>
+      <li><b>発言・引用：</b>試合後ミケル・アルテタ監督は「私の選手たちを讃える時が来た」と語り、堅い守備ブロックを敷く相手に対して我慢強くゴールをこじ開けた選手の姿勢を高く評価した。</li>
+      <li><b>戦術・詳細データ：</b>試合の支配率を高めながらも前半は決定打に欠けたが、72分にノニ・マドゥエケの低弾道シュートをGKが弾いたこぼれ球をウーデゴールが素早く反応し、今季5点目となる決勝ゴールを沈めた。</li>
+      <li><b>今後の見通し：</b>この勝利により、アーセナルは万全の状態で最後のインターナショナルマッチウィークへ突入。主力の疲労管理と怪我人の復帰調整を進めながら首位を維持する。</li>
     </ul>
-    <p class="ext-link"><a href="https://arseblog.news/2026/11/raya-russo-and-berta-scoop-gongs/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://arseblog.news/2026/11/its-time-to-praise-my-players-arteta-reacts-to-win-over-hull/" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [Arseblog] アーセナル・ウィメン、カンプノウでのバルセロナ戦へ向け最終調整</summary>
+  <summary>🔴 [Guardian] マルティン・ウーデゴールが均衡を破る値千金の弾丸ゴールでハル戦勝利の立役者に</summary>
   <div class="detail-box">
     <ul>
-      <li>アーセナル・ウィメンは、女子チャンピオンズリーグのグループステージでカンプノウに乗り込み、王者バルセロナと激突します。</li>
-      <li>水曜日に予定されていた本試合は、スペイン全土で発生した大規模ストライキの影響により木曜日の夜へと延期される緊急対応が取られました。</li>
-      <li>チームは調整日程の変更を乗り越え、欧州トップレベルの相手に対して勝利を目指す厳しいアウェイ戦に挑みます。</li>
+      <li><b>要点・背景：</b>セルゲイ・ヤキロビッチ監督率いるハル・シティの粘り強い守備の前に苦しんだアーセナルだが、主将ウーデゴールの勝負強さが光り、2008年以来の番狂わせを防いで勝点3をもぎ取った。</li>
+      <li><b>発言・引用：</b>前半終了間際にはカイ・ハーツがエリア内でシャツを引っ張られて倒されるもPK判定が出ない不運なジャッジもあったが、チームは動揺することなく後半に攻勢を強めた。</li>
+      <li><b>戦術・詳細データ：</b>ウーデゴールはこれが今季公式戦第5号ゴールとなり、中盤からの飛び出しとゴール前での冷静な嗅覚が改めて証明された。堅守を誇るアーセナルはマンチェスター・シティとの勝点差を維持。</li>
+      <li><b>今後の見通し：</b>インターナショナルブレイク明けの過密スケジュールに向けて、主将ウーデゴールの絶好調な得点感覚と中盤の統率はチームの絶対的な支えとなる。</li>
     </ul>
-    <p class="ext-link"><a href="https://arseblog.news/2026/11/barcelona-femeni-v-arsenal-preview/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/07/arsenal-hull-premier-league-match-report" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [Arseblog] 19歳GKカリ・ランソン、ローン先のビラリキー・タウンで好発進</summary>
+  <summary>🔴 [Guardian] デヴィッド・ラヤが語る昨季CL決勝敗退の悔しさと今季欧州制覇への強い執念</summary>
   <div class="detail-box">
     <ul>
-      <li>アーセナル下部組織で長年成長を続け、ファーストチームのベンチ入り経験もある19歳の若手GKカリ・ランソンが、ナショナルリーグ・サウスのビラリキー・タウンへ28日間の短期ローンで加入しました。</li>
-      <li>移籍直後のデビュー戦で素晴らしいパフォーマンスを披露し、下部リーグのフィジカルな環境にも即座に適応する逞しさを見せました。</li>
-      <li>実戦経験を積ませて成長を加速させるクラブの方針通り、実りあるレンタル移籍期間となることが期待されています。</li>
+      <li><b>要点・背景：</b>昨季のチャンピオンズリーグ決勝でパリ・サンジェルマンにPK戦の末に敗れた痛みを胸に、アーセナルは今季の欧州舞台でさらなる高みを目指しており、GKラヤがその内情を明かした。</c>
+      <li><b>発言・引用：</b>ラヤは「昨季の決勝敗退の痛みは我々の血肉となっている。今年こそ状況をより良くするのは自分たち次第だ」と述べ、欧州制覇への強い決意を語っている。</li>
+      <li><b>戦術・詳細データ：</b>スラヴィア・プラハ戦でもラヤは絶妙なスーパーセーブを連発してチームを救い、アーセナルはCLグループステージ4試合で10ポイントを獲得して3位に浮上、アウェー10戦無敗を継続中。</li>
+      <li><b>今後の見通し：</b>鉄壁の守備陣とラヤの圧倒的なセービング能力を武器に、過酷なチャンピオンズリーグのリーグフェーズを首位圏内で突破することに視線を向ける。</li>
     </ul>
-    <p class="ext-link"><a href="https://arseblog.news/2026/11/khari-ranson-gets-off-to-impressive-start-out-on-loan/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/05/arsenal-pain-champions-league-final-defeat-david-raya" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [Arseblog] 戦術分析：リヴァプールを崩した右サイドの打開力とエミリー・フォックスの機能性</summary>
+  <summary>🔴 [Guardian] ヴィクトル・ギェケレシュがスラヴィア・プラハ戦の勝利をけん引、ミケル・アルテタとの良好な関係を強調</summary>
   <div class="detail-box">
     <ul>
-      <li>アーセナル・ウィメンがアンフィールドでリヴァプールに2-1で勝利した試合では、アレッシア・ルッソの2ゴールがいずれも右サイドの崩しから生まれました。</li>
-      <li>右バックのエミリー・フォックスとリサ・バウムが連携して相手の左サイドの守備ブロックを完璧に攻略。綿密に仕組まれた戦術的狙いが結実しました。</li>
-      <li>ルネ・スレガーズ監督も試合後に右サイド重視のビジョンを明かしており、今後の上位対決でも強力な武器となることが証明されました。</li>
+      <li><b>要点・背景：</b>チェコのアウェーゲームとなったスラヴィア・プラハ戦で、ヴィクトル・ギェケレシュが攻撃の中心として機能し、終盤の猛追をかわして価値あるアウェー勝利に貢献した。</li>
+      <li><b>発言・引用：</b>出場機会が限られているとの憶測に対し、ギェケレシュ自身は「ミケル・アルテタ監督とは今でも非常に良好な関係を築いている。コミュニケーションも円滑だ」と不仲説を否定した。</li>
+      <li><b>戦術・詳細データ：</b>チームは終盤にウィクトル・ノヴァクにゴールを許すなど一瞬の隙を見せたものの、終始ギェケレシュの力強いポストプレーと裏への抜け出しが相手守備陣を脅かし続けた。</li>
+      <li><b>今後の見通し：</b>ストライカーとしての適応に苦しみながらも、指揮官との強固な信頼関係をベースに、今後の公式戦でのさらなる爆発とスタメン奪取に向けて意欲を見せている。</li>
     </ul>
-    <p class="ext-link"><a href="https://arseblog.news/2026/11/analysis-arsenals-right-sided-bias-out-foxes-liverpool/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/04/slavia-prague-arsenal-champions-league-match-report" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [Arseblog] ウィメンポッドキャスト：アンフィールド勝利を支えた「ルッソFC」の圧倒的勝負強さ</summary>
+  <summary>🔴 [Guardian] ウィリアム・サリバが長期離脱からついに復帰へ、アルテタ監督が万全のコンディションを確信</summary>
   <div class="detail-box">
     <ul>
-      <li>「Arsenal Women Arsecast」最新回では、敵地アンフィールドで見せた圧倒的なロケットスタートと試合運びについて議論が交わされました。</li>
-      <li>試合を決めたルッソの決定力と、それを支えるエミリー・フォックスのパフォーマンスがチームの勝利に決定的な差を生み出したと分析しています。</li>
-      <li>リヴァプールの守守備陣の弱点を見抜き、立ち上がりから主導権を握り続けた監督陣の采配も高く評価されています。</li>
+      <li><b>要点・背景：</b>昨年のワールドカップで背中を負傷して以来長期離脱を続けていたDFウィリアム・サリバが、非公開マッチでのテスト出場を経てチェコ遠征のスカッドに帯同を果たした。</li>
+      <li><b>発言・引用：</b>アルテタ監督はサリバの起用について「彼はしっかりと準備ができている。私は直近のトレーニングやテストマッチの映像を見て確認しているから何の疑いもない」と完全復活に太鼓判を押した。</li>
+      <li><b>戦術・詳細データ：</b>25歳のフランス代表DFは先月単独でのトレーニングから再開し、その後全体練習に完全合流。バックラインの主軸の復帰はチームの守備力強化にとってこれ以上ない朗報となる。</li>
+      <li><b>今後の見通し：</b>まずはU21チームの試合などで実戦感覚を完全に取り戻しつつ、過密日程を迎えるトップチームの公式戦へ本格的に組み込まれていくスケジュールとなる。</li>
     </ul>
-    <p class="ext-link"><a href="https://arseblog.news/2026/11/arsenal-women-arsecast-episode-181-russo-fc-as-the-gunners-win-at-anfield/" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/03/arteta-backs-salibas-readiness-to-return-for-arsenal-at-slavia-prague" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [Guardian] ウーデゴールの殊勲弾でハル・シティのブロックを打ち破り首位キープ</summary>
+  <summary>🔴 [BBC] プレミアリーグ独立パネルがリヴァプール戦のジャッジについてティンバーのシャツ引っ張りはPK相当と発表</summary>
   <div class="detail-box">
     <ul>
-      <li>アーセナルはハル・シティとのタフな一戦を粘り強く戦い抜き、キャプテンのマルティン・ウーデゴールが打破する決勝ゴールを挙げ、1-0で勝利を収めました。</li>
-      <li>過去14回の対戦で無敗を誇る相性の良さがありながらも、ハル・シティの頑強な守備ブロックに阻まれ苦しい展開が続きましたが、残り20分で主将が勝負強さを発揮。</li>
-      <li>プレミアリーグ優勝に向けたタイトルレースで貴重な勝ち点3を積み上げ、勝ち点差を守って首位の座を強固なものとしています。</li>
+      <li><b>要点・背景：</b>リヴァプール戦でDFユリエン・ティンバーがアレクサンダー・イサクをペナルティエリア内でシャツを引っ張って倒したインシデントについて、プレミアリーグの独立キーマッチインシデントパネルが公式見解を示した。</li>
+      <li><b>発言・引用：</b>同パネルは、当該のシーンについてVARの介入が行われなかったことは明白な誤りであり、リヴァプール側にペナルティが与えられるべきだったと判定を下した。</li>
+      <li><b>戦術・詳細データ：</b>アーセナルはこの試合で辛くも判定に救われる形となったが、直近のハル・シティ戦でも同様のシャツ引っ張りが見逃されるなど、セットプレーやボックス内での守備対応における笛の基準が議論を呼んでいる。</li>
+      <li><b>今後の見通し：</b>判定を巡る論争が激化する中、アルテタ監督およびディフェンス陣は、VARや審判の目を欺くような不用意なコンタクトを避け、よりクリーンなボックス内ディフェンスの徹底が求められる。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/07/arsenal-hull-premier-league-match-report" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c6n8d8kl125vo?at_medium=RSS&at_campaign=rss" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [Guardian] アルテタ監督、デクラン・ライスの酷使懸念を払拭「出場時間は徹底管理している」</summary>
+  <summary>🔴 [BBC] レバークーゼンの若手ストライカー、クリスチャン・コファンヌをアーセナルが注視</summary>
   <div class="detail-box">
     <ul>
-      <li>ミケル・アルテタ監督は、デクラン・ライスがクラブと代表で過剰な試合数をこなしているとの懸念に対し、「我々は彼のコンディションを細心の注意を払って管理している」と反論しました。</li>
-      <li>過密日程の中でも高パフォーマンスを維持するためのコンディショニング・プログラムが機能していることを主張しています。</li>
-      <li>中盤の怪我人が相次ぐシーズンにおいて、ライスの耐久性とフィットネスはタイトル獲得の命運を握る要素となっています。</li>
+      <li><b>要点・背景：</b>将来的な攻撃陣の層の厚さをさらに強化するため、アーセナルのスカウト陣がレバークーゼンに所属する新進気鋭のストライカー、クリスチャン・コファンヌの動向を継続的に監視していることが判明した。</li>
+      <li><b>発言・引用：</b>クラブのフロントおよびスカウティング部門は、前線のオプションを多様化させるためのターゲットとして若手アタッカーのリストアップを進めており、コファンヌはその有力候補として浮上している。</li>
+      <li><b>戦術・詳細データ：</b>現代的なフォワードとしての身体能力と決定力を兼ね備えており、アーセナルが志向するハイインテンシティなプレッシングや柔軟なポゼッションサッカーへの適性が高く評価されている。</li>
+      <li><b>今後の見通し：</b>冬の移籍市場あるいは来夏のウィンドウに向けて、具体的なアプローチに踏み切るかどうかの見極めを行うため、引き続き同選手のブンデスリーガでのパフォーマンスデータを収集する。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/06/premier-league-news-manchester-united-baleba-manchester-city-donnarumma-arsenal-arteta-rice" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cjqlnl63ewzpo?at_medium=RSS&at_campaign=rss" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [Guardian] 「敗北の悔しさは血の中に」ラヤが語る昨季CL決勝のトラウマとリベンジへの誓い</summary>
+  <summary>🔴 [JustArsenal] ピエロ・インカピエの1月売却説を否定、バルセロナの関心の中でもスカッドの重要戦力として維持へ</summary>
   <div class="detail-box">
     <ul>
-      <li>ダビド・ラヤは、昨シーズンのチャンピオンズリーグ決勝でPSGにPK戦の末破れたトラウマが、今季の欧州舞台での最大の原動力になっていると語りました。</li>
-      <li>スラヴィア・プラハ戦でも試合決定づける見事なセービングを披露し、チームをアウェイでの勝利に導いています。</li>
-      <li>「あの痛みを結果に変え、今季こそトロフィーを掲げるのが自分たちの義務だ」と並々ならぬ強い意志を示しています。</li>
+      <li><b>要点・背景：</b>左センターバックのポジションでガブリエウ・マガリャイスとの厳しい定位置争いを強いられているピエロ・インカピエに対し、バルセロナからの関心が噂されているが、クラブのスタンスは明確である。</li>
+      <li><b>発言・引用：</b>アルテタ監督にとってインカピエは守備陣の多様性と層の厚さを維持するために極めて重要な存在であり、シーズン途中の1月に放出する意思は一切ないことが強調されている。</li>
+      <li><b>戦術・詳細データ：</b>加入以来、安定したパフォーマンスで最終ラインを支えており、センターバックと左サイドバックの両方を高水準でこなせる戦術的なユーティリティ性が高く買われている。</li>
+      <li><b>今後の見通し：</b>過密日程の中でローテーションの核として起用される見込みであり、バルセロナをはじめとする外部からの引き抜き工作に対してアーセナルは頑なに扉を閉ざし続ける方針。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/05/arsenal-pain-champions-league-final-defeat-david-raya" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.justarsenal.com/what-arsenal-thinks-about-selling-piero-hincapie-in-january-amid-barcelona-interest/425605" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [Guardian] ギョケレシュの勝負強さが光る！アーセナルがスラヴィア・プラハを下しCL連勝</summary>
+  <summary>🔴 [JustArsenal] ベン・ホワイトのイングランド代表復帰を巡るW杯騒動とファンの反応について専門家が言及</summary>
   <div class="detail-box">
     <ul>
-      <li>チャンピオンズリーグのアウェイゲームに臨んだアーセナルは、ヴィクトル・ギョケレシュのゴールが決め手となり、難敵スラヴィア・プラハを退けました。</li>
-      <li>終盤にスラヴィア・プラハの猛反撃に遭いヒヤリとする場面もありましたが、粘り強く耐え抜き勝利を掴み取りました。</li>
-      <li>ギョケレシュは前線での圧倒的な存在感と決定力を発揮し、欧州の舞台でも攻撃の核として不可欠な存在であることを証明しました。</li>
+      <li><b>要点・背景：</b>2022年カタールW杯期間中にチームキャンプを離脱して以来代表から遠ざかっていたベン・ホワイトが再びイングランド代表スカッドに名を連ねたことで、メディアやファンの間で大きな議論を呼んでいる。</li>
+      <li><b>発言・引用：</b>元イングランド代表のクリス・ワドル氏らがホワイトの電撃復帰について驚きと期待の入り混じったコメントを残しており、ウェンブリーでのサポーターの反応にも注目が集まっている。</li>
+      <li><b>戦術・詳細データ：</b>クラブでは不動の右サイドバックとして圧倒的なパフォーマンスを維持し続けており、アーセナルでの傑出した戦術的貢献度がガレス・サウスゲイトの後任体制でも評価された形。</li>
+      <li><b>今後の見通し：</b>代表チームでの新たな役割に適応しつつ、クラブでの好調を維持して国際舞台でも自身の価値を完全に証明することが期待されている。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/04/slavia-prague-arsenal-champions-league-match-report" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.justarsenal.com/im-surprised-chris-waddle-discusses-ben-whites-england-career/425604" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [BBC] 審判パネルの見解：ティンバーのイサクに対するユニフォーム引っ張りは「PKと判定されるべきだった」</summary>
+  <summary>🔴 [Guardian] デクラン・ライスの過密日程についてアルテタ監督が「しっかりとケアしている」と懸念を払拭</summary>
   <div class="detail-box">
     <ul>
-      <li>プレミアリーグの独立審判パネルは、先日の試合でユリエン・ティンバーがアレクサンダー・イサクのユニフォームを引っ張ったシーンについて、リヴァプールにPKが与えられるべきだったとの判定の見解を出しました。</li>
-      <li>試合中にはVARチェックが行われたものの主審のノーフォール判定が覆ることはありませんでしたが、後日の再検証で誤審の可能性が指摘されています。</li>
-      <li>今節も各試合でVARの介入を巡る議論が紛糾しており、判定基準の一貫性が再び問われる形となりました。</li>
+      <li><b>要点・背景：</b>アーセナルとイングランド代表の双方で中盤の絶対的な主軸としてフル稼働を続けるデクラン・ライスについて、連戦による疲労蓄積を懸念する声に対してミケル・アルテタ監督が言及した。</li>
+      <li><b>発言・引用：</b>アルテタ監督はメディアの取材に対し、「我々はデクランの状態を本当に注意深く見守り、ケアしているところだ」と述べ、過度な負担がかからないよう管理していることを強調した。</li>
+      <li><b>戦術・詳細データ：</b>圧倒的な運動量と対人守備、攻撃の組み立てへの関与度を誇るライスは、チームのインテンシティを保つ上で欠かせないピースであり、全コンペティションでほぼ全試合に先発出場している。</li>
+      <li><b>今後の見通し：</b>代表ウィークでの試合も含めてコンディション管理を徹底し、冬場に向けてパフォーマンスが低下しないようクラブと代表スタッフ間で綿密な連携が図られる。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c6n8d8kl125vo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/06/premier-league-news-manchester-united-baleba-manchester-city-donnarumma-arsenal-arteta-rice" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
+  </div>
+</details>
+
+
+
+<h2>🌱 アーセナル U21・U18・アカデミー＆ローン選手動向（4〜6件）</h2>
+<details>
+  <summary>🌱 [U21] ウィリアム・サリバが45分間の実戦復帰！アストン・ヴィラを5-2で下しU21が快勝</summary>
+  <div class="detail-box">
+    <ul>
+      <li><b>試合結果・動向：</b>プレミアリーグ2の舞台でアーセナルU21はアストン・ヴィラU21と対戦し、ハシ、ハリマン＝アヌスのマルチゴール、マックス・ダウマン、ムーニーの得点により5-2で圧勝を収めた。</li>
+      <li><b>注目選手・スタッツ：</b>負傷離脱中だったトップチームのDFウィリアム・サリバが先発出場し、計画通り前半の45分間をプレイして的確なパスワークでチームを牽引。また、出場停止中の16歳超逸材マックス・ダウマンも圧巻のゴールを記録した。</li>
+      <li><b>トップチームへの展望：</b>サリバの順調な回復と実戦復帰は、トップチームのディフェンス陣にとってこれ以上ない朗報であり、次節以降のトップスカッド復帰へ視界が良好となった。</li>
+    </ul>
+    <p class="ext-link"><a href="https://arsenalyouth.wordpress.com/2026/11/08/report-william-saliba-max-dowman-and-marli-salmon-start-for-arsenal-u21s-against-aston-villa/" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [BBC] アーセナルがレヴァークーゼンの新鋭FWコファネの獲得に向け監視を継続</summary>
+  <summary>🌱 [ローン選手] GKカリ・ランソンがナショナルリーグ・サウスのビレリカイ・タウンへ28日間の期限付き移籍</summary>
   <div class="detail-box">
     <ul>
-      <li>アーセナルはスカウティングネットワークを通じて、バイエル・レヴァークーゼンに所属する新鋭FWクリスティアン・コファネの動向を注視しています。</li>
-      <li>将来の攻撃陣のレイアウトを見据え、若く爆発力のあるストライカーの選択肢としてスカウト陣が定期的な評価を行っている模様です。</li>
-      <li>今後の移籍市場に向けた候補者リストの一人として名前が挙がっており、継続的なモニタリングが行われています。</li>
+      <li><b>試合結果・動向：</b>長年アカデミーの各カテゴリで正GKを務め、トップチームのチャンピオンズリーグでもベンチ入り経験を持つ19歳のGKカリ・ランソンが、武者修行としてビレリカイ・タウンへ初歩的な28日間のローン加入を果たした。</li>
+      <li><b>注目選手・スタッツ：</b>現代的なGK像に合致した足元の技術とショットストップ能力を誇るランソンは、シニアレベルのガチンコの環境で自身の出場経験を積むことが期待されている。</li>
+      <li><b>トップチームへの展望：</b>育成年代の枠を超えてノンリーグの厳しい環境で公式戦の経験を積むことで、将来的なトップチームの第2・第3GKとしてのステップアップを目指す。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cjqlnl63ewzpo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://arsenalyouth.wordpress.com/2026/11/10/confirmed-arsenal-goalkeeper-khari-ranson-joins-billericay-town-on-initial-28-day-loan/" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔴 [BBC] 若手FWセアダッハ・オニールが負傷のため北アイルランド代表を離脱</summary>
+  <summary>🌱 [U18/アカデミー] マイロ・バーナードらのゴールでサンダーランドを下しU18プレミアリーグカップ突破決定</summary>
   <div class="detail-box">
     <ul>
-      <li>アーセナルのアカデミーに所属する若手FWセアダッハ・オニールが、負傷により北アイルランド代表のネーションズリーグ２試合を欠場することが決まりました。</li>
-      <li>ウクライナ戦およびハンガリー戦に向けた大事な招集枠でしたが、コンディション不良により代表を離れロンドンで治療に専念します。</li>
-      <li>クラブの医療チームが復帰時期を見極めており、早期の復帰を目指すこととなります。</li>
+      <li><b>試合結果・動向：</b>U18プレミアリーグカップのグループ最終節で、アーセナルU18はサンダーランドU18と対戦し、マイロ・バーナード、イーサン・ヌワネリ（PK）、ハミルのゴールにより3-0の快勝を収めてノックアウトステージ進出を決めた。</li>
+      <li><b>注目選手・スタッツ：</b>試合を通じて主導権を握り続けたアーセナルは、バーナードが均衡を破る先制点を奪い、アカデミー期待の若手たちが勝負強さを発揮して完封勝利に貢献した。</li>
+      <li><b>トップチームへの展望：</b>アカデミー全体で勝ち癖がついており、若手有望株たちがカップ戦の厳しいプレッシャーの中でも結果を残すことで、将来のトップ昇格に向けたアピールに成功している。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cm5ynylnd71yo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
-  </div>
-</details>
-
-<h2>⚔️ ビッグ6＆プレミアリーグ動向</h2>
-
-<details>
-  <summary>⚔️ 【マンチェスター・U】ポチェッティーノがキャリック後任として新監督就任に応じる構え</summary>
-  <div class="detail-box">
-    <ul>
-      <li>マウリシオ・ポチェッティーノが、マンチェスター・ユナイテッドからのオファーを受け入れて次期ヘッドコーチに就任する準備を整えていると報じられました。</li>
-      <li>10年越しの熱烈なラブコールが結実する形となりそうですが、マイケル・キャリック現監督の解任プロセスを含めクラブの対応には賛否両論が巻き起こっています。</li>
-      <li>過渡期にあるオールド・トラッフォードの再建に向け、ポチェッティーノの戦術スタイルとプレッシングサッカーが適合するか注目が集まります。</li>
-    </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cqvg25pj36mvo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://arsenalyouth.wordpress.com/2026/11/07/report-mylo-bernard-amongst-scorers-as-arsenal-u18s-beat-sunderland-to-progress-in-premier-league-cup/" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【マンチェスター・U】キャリック監督の進退を巡る幹部会合が開催へ、経営陣の支持は維持</summary>
+  <summary>🌱 [代表招集] アーセナルU18のDFマルリ・サーモンが怪我人の影響によりイングランドU19代表へ飛び級昇格</summary>
   <div class="detail-box">
     <ul>
-      <li>マンチェスター・ユナイテッドは水曜日に主要幹部が集まる水曜会合を開き、マイケル・キャリック監督の去就について協議を行う予定です。</li>
-      <li>オマール・ベラダCEOやジェイソン・ウィルコックス技術監督ら経営陣は、共同オーナーであるジム・ラトクリフ卿からの信頼を継続して得ている模様です。</li>
-      <li>アストン・ヴィラ戦での4-4引き分けなど不安定な戦いが続いており、今国際中断期間中での決断に注目が集まっています。</li>
+      <li><b>試合結果・動向：</b>イングランドサッカー協会（FA）は、トッテナムのDFマラキ・ハーディの負傷離脱に伴い、アーセナルアカデミーのDFマルリ・サーモンをU18代表からU19代表スカッドへ昇格させることを発表した。</li>
+      <li><b>注目選手・スタッツ：</b>これまでU16およびU17カテゴリでも代表に選ばれてきたサーモンは、安定した守備力とビルドアップ能力が高く評価され、年上のカテゴリへの飛び級招集を勝ち取った。</li>
+      <li><b>トップチームへの展望：</b>若くして国際舞台での経験値を急速に高めており、Hale End（Hale Endアカデミー）の次世代を担うセンターバック候補としてクラブ内でも高い期待が寄せられている。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cmy0r041ed0po?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://arsenalyouth.wordpress.com/2026/11/09/arsenal-defender-marli-salmon-promoted-to-england-u19-squad-from-u18s/" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【マンチェスター・U】ドルグの96分起死回生弾でヴィラと4-4激闘ドロー</summary>
+  <summary>🌱 [ローン選手・若手動向] トミー・セトフォードのFAカップ無失点勝利やチャールズ・サゴエ・ジュニアらの最新動向</summary>
   <div class="detail-box">
     <ul>
-      <li>マンチェスター・ユナイテッドはホームでアストン・ヴィラと対戦し、2点ビハインドを2度も追いつく凄惨な乱打戦の末、4-4の劇的ドローに持ち込みました。</li>
-      <li>後半アディショナルタイム96分にパトリック・ドルグが魂の同点ゴールを押し込み、オールド・トラッフォードを歓喜と混乱に陥れました。</li>
-      <li>土壇場で敗戦を免れたものの、リーグ最少勝星数（1勝）に留まるチームの守備崩壊ぶりは深刻な問題として浮き彫りになっています。</li>
+      <li><b>試合結果・動向：</b>レンタル先で武者修行を続ける若手選手たちの週末の動向が伝えられ、GKトミー・セトフォードがFAカップ1回戦のオックスフォード・ユナイテッド戦（1-0）でクリーンシートを達成した。</li>
+      <li><b>注目選手・スタッツ：</b>チャールズ・サゴエ・ジュニアがカルマルの一員としてシリウス戦（1-0）にフル出場して勝利に貢献。また、ドルトムントにレンタル中のイーサン・ヌワネリもエルフェルスベルク戦の終盤86分から途中出場を果たした。</li>
+      <li><b>トップチームへの展望：</b>国内外の様々な環境やカテゴリにレンタル移籍している若手たちが、実戦経験を通じて着実にプロとしてのたくましさを身につけている。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/manchester-united-aston-villa-premier-league-match-report" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://arsenalyouth.wordpress.com/2026/11/08/loan-report-setford-keeps-clean-sheet-in-fa-cup-sagoe-jr-features-in-kalmar-victory/" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
+  </div>
+</details>
+<h2>⚔️ ビッグ6動向（10〜12件 ※シティ/リヴァプール/チェルシー/Utd/スパーズ）</h2>
+
+<details>
+  <summary>⚔️ 【マンチェスター・U】キャリック体制わずか15試合で幕…後任にポチェッティーノ名乗りか</summary>
+  <div class="detail-box">
+    <ul>
+      <li><b>要点・背景：</b>マンチェスター・ユナイテッドは成績不振に伴いマイケル・キャリック監督をわずか15試合で解任。過去3シーズンで3人の監督を解任する極めて混乱した状況下で、クラブ幹部は前チェルシー指揮官のマウリシオ・ポチェッティーノの招聘へ動いている。</li>
+      <li><b>監督・選手の発言：</b>現地メディアは「ユナイテッドは常にポチェッティーノ招聘の噂と隣り合わせだった。13年間にわたり構造的課題を解決できないまま監督の採用と解任を繰り返している」とクラブ経営陣のビジョン不足を鋭く批判した。</li>
+      <li><b>戦術・チーム事情：</b>キャリック前監督は2年契約を結んでいたものの、守備の崩壊と直近の勝率の低下を止められず解任に至った。ポチェッティーノのアグレッシブなハイプレス戦術は現在の若手中心の分厚い前線構想に適していると評価されている。</li>
+      <li><b>今後の影響：</b>代表ウィーク期間中に新指揮官の決定が急がれる。次節以降、新監督のもとで降格圏間近からの巻き返しを図る必要があるが、戦術の落とし込みには時間を要する見込みだ。</li>
+    </ul>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/11/mauricio-pochettino-manchester-united-old-trafford-manager" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【マンチェスター・C】マレスカ体制で公式戦3連敗、国際中断期間中に戦術の再点検へ</summary>
+  <summary>⚔️ 【マンチェスター・U】アストン・ヴィラと4-4激闘ドローも降格圏脱出ならず</summary>
   <div class="detail-box">
     <ul>
-      <li>開幕7連勝を飾っていたエンツォ・マレスカ率いるマンチェスター・シティですが、ノッティンガム・フォレスト戦での敗戦を含め公式戦3連敗と突如不調に陥っています。</li>
-      <li>マレスカ監督は「この国際中断期間を利用してチームの課題を徹底的に再評価する」と語り、戦術面の再構築を示唆しました。</li>
-      <li>相手チームによる対策が進んだ結果、ビルドアップの局面での弱点や守守備の脆さが露出しており、立て直しが急務となっています。</li>
+      <li><b>要点・背景：</b>オールド・トラッフォードで行われたアストン・ヴィラ戦は、両チームが4ゴールずつを奪い合う熾烈な乱打戦となった。ユナイテッドは2度の2点ビハインドを追いつく粘りを見せたが、リーグ戦今季わずか1勝と極度の低迷から脱せていない。</li>
+      <li><b>監督・選手の発言：</b>ウナイ・エメリ監督は試合後、アディショナルタイムの失点場面でGKスズキ・ジオンへのファウルがあったと激怒。「失点直前の接触はあきらかにキーパーチャージだった」と判定への不満を露わにした。</li>
+      <li><b>戦術・チーム事情：</b>96分にパトリック・ドルグが起死回生の同点ヘディングシュートを叩き込んだ。攻撃陣は土壇場での勝負強さを見せたものの、守備陣は簡単な失点を重ねており、守備の組織再構築が最優先課題として浮き彫りになった。</li>
+      <li><b>今後の影響：</b>劇的な引き分けで勝ち点1を獲得したものの、得失点差の影響で降格圏（18位）にとどまる。代表ウィーク明けの次節は是が非でも勝ち点3が必要となる。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/09/manchester-city-enzo-maresca-premier-league" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/manchester-united-aston-villa-premier-league-match-report" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【リヴァプール】守護神アリソンが今季契約満了後の「新契約締結」を希望</summary>
+  <summary>⚔️ 【マンチェスター・C】フォレストに1-3完敗で泥沼の公式戦3連敗</summary>
   <div class="detail-box">
     <ul>
-      <li>リヴァプールの絶対的守護神アリソン・ベッカーが、現行契約が終了する今シーズン終了後もクラブに留まり、新契約を結びたい意向を表明しました。</li>
-      <li>サウジアラビアなどの他クラブからの関心も噂される中、ブラジル代表GKはアンフィールドでのプレー継続を最優先事項として考えています。</li>
-      <li>クラブ側にとっても守備の要の慰留は最重要課題であり、近いうちに交渉が本格化すると見られています。</li>
+      <li><b>要点・背景：</b>開幕7連勝と好スタートを切ったマンチェスター・シティだったが、敵地でのノッティンガム・フォレスト戦に1-3で敗れ、公式戦3連敗を喫した。1904-05シーズンのシェフィールド・ウェンズデイ以来となる異例の急ブレーキとなっている。</li>
+      <li><b>監督・選手の発言：</b>エンツォ・マレスカ監督は「今日は全体的にデュエルと強度で相手に完敗していた。残留争いをするチーム相手に接触局面で負けていては、どのような戦術を組んでも苦戦するのは当然だ」と選手の闘争心欠如を強く詰問した。</li>
+      <li><b>戦術・チーム事情：</b>シティは79%のポゼッション率を記録しながら、相手の縦に早いカウンターとパワフルな推進力に屈した。ヨシュコ・グヴァルディオルが痛恨のボールロストから先制点を献上するなど、守備の集中力低下が目立っている。</li>
+      <li><b>今後の影響：</b>首位アーセナルとの勝ち点差が広がる痛恨の敗戦となった。代表ウィーク中にマレスカ監督が守備の強度改善とメンタル面の再調整をいかに行えるかが連覇への鍵となる。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cw62ypepq2m7o?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/07/enzo-maresca-nottingham-forest-manchester-city-premier-league" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【チェルシー】サンダーランドに痛恨の敗戦、最下位脱出を許す不甲斐ない結果に</summary>
+  <summary>⚔️ 【マンチェスター・C】ポゼッション支配の裏に潜む「戦術的構造欠陥」の露呈</summary>
   <div class="detail-box">
     <ul>
-      <li>チェルシーは敵地でサンダーランドと対戦したものの0-1で破れ、相手に今季貴重な勝利を与えて最下位脱出を許す屈辱を味わいました。</li>
-      <li>決定力を欠いた攻撃陣と一瞬の隙を突かれた守備が響き、格下とされる相手に対して勝ち点を落とす結果となりました。</li>
-      <li>好不調の波が激しいチーム状態が続いており、トップ4争いに向けて更なる修正が求められます。</li>
+      <li><b>要点・背景：</b>直近の3試合でシティはいずれも60%〜70%台のボール保持率を記録し、シュート数でも相手を上回りながら全敗した。ポゼッション重視のマレスカ戦術が相手のカウンター攻撃に対して脆さを見せ始めている。</li>
+      <li><b>監督・選手の発言：</b>マレスカ監督は「3試合の負け方はそれぞれ異なるが、決定機の数と保持率では勝っていた。代表ウィークを有効に使い、チームの細かな問題を修正したい」と前向きな姿勢を保ちつつも課題を認識している。</li>
+      <li><b>戦術・チーム事情：</b>アストン・ヴィラ戦（ポゼッション63%）、ブライトン戦（同62%）、フォレスト戦（同79%）とボールを持ちながらも、トランジション時のリスク管理が機能せず、相手の直線的なランニングへの対応遅れが失点に直結している。</li>
+      <li><b>今後の影響：</b>ポゼッション偏重から守備の安定化へバランスの修正を図らねば、中堅クラブからのプレッシングの好好標的となりかねない。代表ウィーク明けの陣形刷新に注目が集まる。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/live/2026/nov/08/crystal-palace-v-liverpool-brighton-v-brentford-and-more-premier-league-live" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/09/manchester-city-enzo-maresca-premier-league" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【チェルシー】スタッフに対し「ファンタジー・プレミアリーグ」の使用厳禁・注意喚起</summary>
+  <summary>⚔️ 【リヴァプール】ヴィルツの鮮烈弾などでパレスを3-1撃破し4位浮上</summary>
   <div class="detail-box">
     <ul>
-      <li>チェルシーはクラブスタッフに対し、ゲーム「Fantasy Premier League (FPL)」のチーム編成を通じて内部の怪我人情報漏洩が起きたとして警告を発しました。</li>
-      <li>ジョアン・ペドロの負傷離脱が、スタッフのFPLチーム選定から事前に外部へ察知されたことが問題視された模様です。</li>
-      <li>情報管理の徹底を図るため、チームニュースに関するSNSやゲーム内での取り扱いについて厳しいガイダンスが適用されます。</li>
+      <li><b>要点・背景：</b>リヴァプールは敵地セルハースト・パークでクリスタル・パレスと対戦し、3-1の快勝を収めた。前節アーセナル戦の敗戦およびCLフェネルバフチェ戦の痛戦から見事に立ち直り、リーグトップ4圏内を維持した。</li>
+      <li><b>監督・選手の発言：</b>試合後、現地解説陣は「フロリアン・ヴィルツのミドルシュートはプレッシャー下での技術の高さを見せつける一撃だった。彼がボールを持った瞬間のスムーズさがリヴァプールに決定的な差をもたらした」と絶賛した。</li>
+      <li><b>戦術・チーム事情：</b>前半終了間際にドミニク・ソボスライのFKからアレクシス・マック・アリスターが頭で合わせて先制。後半にはブラッドリー・バルコラの絶妙な折り返しからヴィルツがダイレクトで叩き込み、試合の主導権を完全に掌握した。</li>
+      <li><b>今後の影響：</b>公式戦連敗の重苦しいムードを払拭し、上位追撃に向けた弾みをつけた。代表ウィーク明けには主力の疲労考慮とさらなる連携の熟成が期待される。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c98rzr51rlvpo?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/crystal-palace-liverpool-premier-league-match-report" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>⚔️ 【プレミアリーグコラム】監督解任はデータ分析よりも「コントロールの幻想」維持のため？</summary>
+  <summary>⚔️ 【リヴァプール】守護神アリソン、今季終了後の契約延長に前向きな意向</summary>
   <div class="detail-box">
     <ul>
-      <li>高度なデータ分析が普及した現代サッカーにおいても、監督の解任劇はロジックではなく「雰囲気（Vibes）」やクラブ経営陣のパフォーマンスで決まることが多いと指摘されています。</li>
-      <li>マイケル・キャリックらの進退問題を引き合いに出し、成績不振時に手遅れ感を払拭し「クラブをコントロールできている」と見せるための解任の力学を解説。</li>
-      <li>監督交代が必ずしも中長期的な勝利に結びつかない現実と、短期的な結果を求めるプレッシャーの矛盾を浮き彫りにしています。</li>
+      <li><b>要点・背景：</b>リヴァプールの絶対的守護神であるアリソン・ベッカーが、現行契約が今季限りで満了を迎えるにあたり、クラブとの新契約締結を希望していることが明らかになった。サウジアラビア勢からの関心も噂される中での動向となる。</li>
+      <li><b>監督・選手の発言：</b>アリソンに近い関係者は「彼はアンフィールドでの生活とクラブのプロジェクトに完全に満足しており、契約を延長してリヴァプールでキャリアを継続させることを第一に考えている」と明かした。</li>
+      <li><b>戦術・チーム事情：</b>ギオルギ・ママルダシュヴィリの加入が控えているものの、アリソンのハイレベルなビルドアップ貢献とセービング能力は依然としてチームの戦術的基盤。クラブ側もベテランの経験値を高く評価している。</li>
+      <li><b>今後の影響：</b>守護神の契約延長が実現すれば、守備陣の長期的安定が保障される。代表ウィーク中に代理人と経営陣の間で本格的な交渉が進められる予定だ。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/10/michael-carrick-firing-managers-premier-league" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
-  </div>
-</details>
-
-<h2>🔄 移籍の噂・ゴシップ (BBC Gossip / 現地紙まとめ)</h2>
-
-<details>
-  <summary>🔄 【アーセナル/ボーンマス】アレックス・スコット獲得レースにアーセナルが参戦（BBC Gossip）</summary>
-  <div class="detail-box">
-    <ul>
-      <li>アーセナルはボーンマス所属の才能あふれる若手MFアレックス・スコットの獲得に向け、クラブ側に接触を図ったと報じられています。</li>
-      <li>中盤の層を厚くし、将来的な軸となるインサイドハーフ／ボランチの補強候補として評価を高めている模様です。</li>
-      <li>複数クラブが強い関心を示している中、アーセナルが今冬から来夏にかけて有利な交渉ポジションを狙っています。</li>
-    </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c62l51xyl98no?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cw62ypepq2m7o?at_medium=RSS&at_campaign=rss" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔄 【マンチェスター・U】守備陣再構築に向け新たなセンターバック2名をリストアップ（BBC Gossip）</summary>
+  <summary>⚔️ 【チェルシー】最下位サンダーランドにPK献上で敗北、アロンソ体制の試練続く</summary>
   <div class="detail-box">
     <ul>
-      <li>マンチェスター・ユナイテッドは失点が相次ぐ最終ラインを改善すべく、補強候補リストに新たに2名のディフェンダーを追加したとされています。</li>
-      <li>今冬の移籍市場、あるいは来夏に向けた最優先課題として守備陣の補強を狙っています。</li>
-      <li>新監督就任の噂とともに、ターゲット選手の選定が急ピッチで進められている模様です。</li>
+      <li><b>要点・背景：</b>チェルシーは敵地スタジアム・オブ・ライトでサンダーランドと対戦し、0-1で痛恨の敗戦を喫した。昨季最終節に続いて敵地でサンダーランドに金星を献上し、最下位相手に不覚を取る結果となった。</li>
+      <li><b>監督・選手の発言：</b>シャビ・アロンソ監督は試合後、「チームとしての確固たるアイデンティティをまだ築けていない。相手の球際の強さとホームの熱気に飲み込まれてしまった」と苛立ちと悔しさを滲ませた。</li>
+      <li><b>戦術・チーム事情：</b>後半にPKを与え、エンゾ・ル・フィーに決められて失点。チェルシーはボールを保持するものの崩しのアイデアを欠き、終盤の猛攻も相手の強固なブロックを打破できずに無得点で試合を終えた。</li>
+      <li><b>今後の影響：</b>格下相手の敗戦により上位陣との勝ち点差が拡大。アロンソ監督はスタメンの頻繁な入れ替え（ローテーション）が裏目に出ており、代表ウィーク明けまでに固定メンバーと戦術の確立が求められる。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c62l51xyl98no?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/sunderland-chelsea-premier-league-match-report" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
 </details>
 
 <details>
-  <summary>🔄 【アストン・ヴィラ/チェルシー】ヴィラがチェルシーのMFロメオ・ラヴィア獲得を検討（BBC Gossip）</summary>
+  <summary>⚔️ 【チェルシー】FPL経由の怪我情報漏洩リスクを受け、クラブスタッフへ異例の警告</summary>
   <div class="detail-box">
     <ul>
-      <li>アストン・ヴィラが、チェルシーに所属するMFロメオ・ラヴィアの獲得に向けた動きを検討していると報じられました。</li>
-      <li>中盤のフィジカルと展開力を強化したいウナイ・エメリ監督の意向を反映した噂とされています。</li>
-      <li>チェルシー側がどのような条件で応じるか、あるいは出場機会を求めて選手が動くかが焦点となります。</li>
+      <li><b>要点・背景：</b>チェルシーはクラブスタッフに対し、ファンタジー・プレミアリーグ（FPL）のチーム編成を通じて選手の負傷情報やスタメン情報が外部に漏洩しないよう、ゲームの利用に関する注意喚起を行った。</li>
+      <li><b>監督・選手の発言：</b>クラブ広報は「スタッフのFPLチーム変更や選手除外の動きから、ジョアン・ペドロの負傷離脱が試合前に特定された可能性がある。情報管理の徹底が必要だ」と警告の理由を説明した。</li>
+      <li><b>戦術・チーム事情：</b>近年、クラブ内部関係者のFPLの動きを追跡するSNSアカウントが存在し、スターティングメンバ―や怪我人情報が対戦相手に事前に筒抜けになるリスクが問題視されていた。</li>
+      <li><b>今後の影響：</b>チェルシー以外のPLクラブにも同様の情報漏洩対策が広がる可能性がある。現代サッカーにおけるデジタル情報管理と情報戦の重要性を象徴する出来事となった。</li>
     </ul>
-    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c62l51xyl98no?at_medium=RSS&at_campaign=rss" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c98rzr51rlvpo?at_medium=RSS&at_campaign=rss" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
   </div>
-</details></div>
-    <div id="stats" class="content"><h3>Arsenal 1 - 0 Hull City (Premier League)</h3>
-<h4>⚽ ゴール＆試合イベント詳細</h4>
+</details>
+
+<details>
+  <summary>⚔️ 【チェルシー】アロンソ指揮下で試行錯誤が継続、「迷走するアイデンティティ」</summary>
+  <div class="detail-box">
+    <ul>
+      <li><b>要点・背景：</b>シャビ・アロンソ新監督率いるチェルシーは、過密日程の中でターンオーバーを繰り返しているものの、チームの戦術的基盤がいまだ定まらず、ファンや現地メディアから「迷走」と批判を受けている。</li>
+      <li><b>監督・選手の発言：</b>アロンソ監督は「膨大な戦力を最適化するには時間が必要だが、チェルシーのようなビッグクラブでは結果も同時に求められる」と、チーム構築の難しさを口にした。</li>
+      <li><b>戦術・チーム事情：</b>試合ごとにフォーメーションや起用選手が大きく変わり、連携の不足が攻撃の停滞や守備の破綻を招いている。特に中盤の構成力と前線のフィニッシュ精度において一貫性を欠いている。</li>
+      <li><b>今後の影響：</b>このまま勝ち点を落とし続ければ、チャンピオンズリーグ出場権獲得争い脱落の危機に直面する。代表ウィーク明けの戦術的なシンプル化が急務だ。</li>
+    </ul>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c5m2ddz437nzo?at_medium=RSS&at_campaign=rss" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
+  </div>
+</details>
+
+<details>
+  <summary>⚔️ 【トッテナム】リーズに0-1で破れ足踏み、テルの接触プレーめぐり判定に不満</summary>
+  <div class="detail-box">
+    <ul>
+      <li><b>要点・背景：</b>トッテナムは敵地エランド・ロードでリーズ・ユナイテッドと対戦し、0-1で敗戦。後半に失点したほか、判定を巡る物議を醸すシーンがあり、勝ち点を持ち帰ることができなかった。</li>
+      <li><b>監督・選手の発言：</b>トッテナム陣営は、相手DFジェイデン・ボーグルがマティス・テルに対して行ったハードタックルが退場処分相当であったと強く主張。試合後に審判協議会（PGMOL）へ正式に異議を申し立てる意向を示している。</li>
+      <li><b>戦術・チーム事情：</b>ノア・オカフォーに痛恨の先制ゴールを許したスパーズは、ボールを支配しながらもリーズの強固な3-5-2ブロックを崩せず。攻撃の鋭さを欠き、枠内シュートの数でも相手を下回った。</li>
+      <li><b>今後の影響：</b>今季のトップ4争いで手痛い敗戦となった。判定への不満は残りつつも、次節に向けてアタッキングサードでの崩しのバリエーションを増やすことが課題となる。</li>
+    </ul>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/07/leeds-tottenham-premier-league-match-report" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
+  </div>
+</details>
+
+<h2>🦁 その他プレミアリーグ14クラブ動向（10〜12件 ※ビッグ6以外のPL全クラブ）</h2>
+
+<details>
+  <summary>🦁 【ブライトン】ディエゴ・ゴメスの超絶弾でブレントフォードを下し堂々の2位浮上</summary>
+  <div class="detail-box">
+    <ul>
+      <li><b>要点・背景：</b>ブライトンはホームで10人のブレントフォードを2-0で swat（一蹴）し、プレミアリーグ順位表で堂々の2位に躍り出た。首位アーセナルを脅かす唯一の対抗馬として強烈な存在感を放っている。</li>
+      <li><b>監督・選手の発言：</b>ファビアン・ヒュルツェラー監督は「ディエゴ・ゴメスのゴールは素晴らしかった。我々は高い位置からのプレスとボールポゼッションで完全に試合を支配できていた」とチームの成長に胸を張った。</li>
+      <li><b>戦術・チーム事情：</b>相手FWイゴール・チアゴが退場処分となった後、ブライトンはピッチを広く使い相手を圧倒。ゴメスの豪快なロングシュートで先制すると、最後まで主導権を渡さず完璧な試合運びを見せた。</li>
+      <li><b>今後の影響：</b>好調を維持して代表ウィークに入り、クラブ史上最高順位でのシーズンフィニッシュ、ひいては優勝争いへの本格参戦に期待が高まっている。</li>
+    </ul>
+    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/brighton-brentford-premier-league-match-report" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
+  </div>
+</details>
+
+<details>
+  <summary>🦁 【ブライトon】アーセナル追撃の筆頭に！驚異の躍進を支える先進的クラブ運営</summary>
+  <div class="detail-box">
+    <ul>
+      <li><b>要点・背景：</b>2026年11月現在、ブライトンがプレミアリーグ2位に位置していることは「フットボールマネージャーのバグ」ではなく現実である。独自のデータスカウティングと戦術的ノウハウにより他クラブを圧倒している。</li>
+      <li><b>監督・選手の発言：</b>現地専門家は「ブライトンはピッチ内外でイングランドおよび欧州サッカーの新たな基準を打ち立てている。他クラブが置き去りにされる中、彼らだけがアーセナルに挑戦できる唯一の存在だ」と称賛した。</li>
+      <li><b>戦術・チーム事情：</b>主力選手を頻繁に引き抜かれながらも、同等以上の能力を持つ若手を格安で獲得・育成するサイクルが完全に定着。チーム全体の意思統一と戦術的柔軟性が非常に高いレベルにある。</li>
+      <li><b>今後の影響：</b>ビッグ6の崩壊に乗じてタイトルレースの一角に食い込んでおり、今季のプレミアリーグの台風の目として世界中の注目を集めている。</li>
+    </ul>
+    <p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cjx23rwxdn64o?at_medium=RSS&at_campaign=rss" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
+  </div>
+</details>
+
+<details>
+  <summary>🦁 【ボーンマス】エヴァニウソンの5戦連発でイプスウィッチを下し破竹の8連勝</summary>
+  <div class="detail-box">
+    <ul>
+      <li><b>要点・背景：</b>ボーンマスは敵地ポートマン・ロードでイプスウィッチに2-1で勝利し、クラブタイ記録となる公式戦8連勝を達成した。快進撃を続けるチームの勢いは止まらない。</li>
+      <li><b>監督・選手の発言：</b>マルコ・ローゼ監督は「敵地での厳しい戦いだったが、選手たちは誇り高いパフォーマンスを見せてくれた。8</div>
+    <div id="stats" class="content"><h3>⚽ Arsenal 1 - 0 Hull City (Premier League)</h3>
+<h4>🎯 ゴール＆試合イベント詳細</h4>
 <table>
 <thead>
 <tr>
@@ -375,7 +461,7 @@
 <th style="text-align: center;">出場</th>
 <th style="text-align: center;">シュート(枠内)</th>
 <th style="text-align: center;">G / A</th>
-<th style="text-align: center;">タックル/ファウル</th>
+<th style="text-align: center;">タックル / ファウル</th>
 </tr>
 </thead>
 <tbody>
@@ -470,7 +556,7 @@
 <tr>
 <td style="text-align: left;"><strong>Viktor Gyökeres</strong></td>
 <td style="text-align: center;">SUB</td>
-<td style="text-align: center;">交代出場</td>
+<td style="text-align: center;">交代</td>
 <td style="text-align: center;">1 (1)</td>
 <td style="text-align: center;">0G / 0A</td>
 <td style="text-align: center;">T:0 / F:0</td>
@@ -478,7 +564,7 @@
 <tr>
 <td style="text-align: left;"><strong>Mikel Merino</strong></td>
 <td style="text-align: center;">SUB</td>
-<td style="text-align: center;">交代出場</td>
+<td style="text-align: center;">交代</td>
 <td style="text-align: center;">2 (2)</td>
 <td style="text-align: center;">0G / 0A</td>
 <td style="text-align: center;">T:0 / F:1</td>
@@ -486,7 +572,7 @@
 <tr>
 <td style="text-align: left;"><strong>Martín Zubimendi</strong></td>
 <td style="text-align: center;">SUB</td>
-<td style="text-align: center;">交代出場</td>
+<td style="text-align: center;">交代</td>
 <td style="text-align: center;">0 (0)</td>
 <td style="text-align: center;">0G / 0A</td>
 <td style="text-align: center;">T:0 / F:0</td>
@@ -494,7 +580,7 @@
 <tr>
 <td style="text-align: left;"><strong>Piero Hincapié</strong></td>
 <td style="text-align: center;">SUB</td>
-<td style="text-align: center;">交代出場</td>
+<td style="text-align: center;">交代</td>
 <td style="text-align: center;">0 (0)</td>
 <td style="text-align: center;">0G / 0A</td>
 <td style="text-align: center;">T:0 / F:0</td>
@@ -502,7 +588,7 @@
 <tr>
 <td style="text-align: left;"><strong>Eberechi Eze</strong></td>
 <td style="text-align: center;">SUB</td>
-<td style="text-align: center;">交代出場</td>
+<td style="text-align: center;">交代</td>
 <td style="text-align: center;">2 (0)</td>
 <td style="text-align: center;">0G / 0A</td>
 <td style="text-align: center;">T:0 / F:1</td>
@@ -636,7 +722,266 @@
 </tr>
 </tbody>
 </table></div>
-    <div id="table" class="content"><h3>🏆 プレミアリーグ 最新順位表</h3>
+    <div id="table" class="content"><h3>🔴 アーセナル シーズン個人スタッツ一覧 (PL公式)</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">選手</th>
+<th style="text-align: center;">時間</th>
+<th style="text-align: center;">G</th>
+<th style="text-align: center;">A</th>
+<th style="text-align: center;">xG</th>
+<th style="text-align: center;">xA</th>
+<th style="text-align: center;">脅威度</th>
+<th style="text-align: center;">創造性</th>
+<th style="text-align: center;">守備貢献(T&amp;CBI)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Rice</strong></td>
+<td style="text-align: center;">822'</td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;"><strong>5</strong></td>
+<td style="text-align: center;">0.57</td>
+<td style="text-align: center;">2.04</td>
+<td style="text-align: center;">70.0</td>
+<td style="text-align: center;">261.8</td>
+<td style="text-align: center;">44</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ødegaard</strong></td>
+<td style="text-align: center;">823'</td>
+<td style="text-align: center;"><strong>3</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">2.40</td>
+<td style="text-align: center;">2.48</td>
+<td style="text-align: center;">212.0</td>
+<td style="text-align: center;">349.1</td>
+<td style="text-align: center;">15</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Calafiori</strong></td>
+<td style="text-align: center;">767'</td>
+<td style="text-align: center;"><strong>1</strong></td>
+<td style="text-align: center;"><strong>2</strong></td>
+<td style="text-align: center;">1.22</td>
+<td style="text-align: center;">1.01</td>
+<td style="text-align: center;">132.0</td>
+<td style="text-align: center;">102.5</td>
+<td style="text-align: center;">42</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Havertz</strong></td>
+<td style="text-align: center;">731'</td>
+<td style="text-align: center;"><strong>3</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">2.78</td>
+<td style="text-align: center;">0.45</td>
+<td style="text-align: center;">241.0</td>
+<td style="text-align: center;">88.5</td>
+<td style="text-align: center;">15</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Saka</strong></td>
+<td style="text-align: center;">596'</td>
+<td style="text-align: center;"><strong>3</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">3.63</td>
+<td style="text-align: center;">1.20</td>
+<td style="text-align: center;">266.0</td>
+<td style="text-align: center;">181.1</td>
+<td style="text-align: center;">23</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>White</strong></td>
+<td style="text-align: center;">532'</td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;"><strong>3</strong></td>
+<td style="text-align: center;">0.18</td>
+<td style="text-align: center;">0.83</td>
+<td style="text-align: center;">43.0</td>
+<td style="text-align: center;">111.7</td>
+<td style="text-align: center;">28</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Tzolis</strong></td>
+<td style="text-align: center;">513'</td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;"><strong>2</strong></td>
+<td style="text-align: center;">0.44</td>
+<td style="text-align: center;">0.90</td>
+<td style="text-align: center;">128.0</td>
+<td style="text-align: center;">144.0</td>
+<td style="text-align: center;">13</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Madueke</strong></td>
+<td style="text-align: center;">428'</td>
+<td style="text-align: center;"><strong>1</strong></td>
+<td style="text-align: center;"><strong>1</strong></td>
+<td style="text-align: center;">0.90</td>
+<td style="text-align: center;">1.54</td>
+<td style="text-align: center;">132.0</td>
+<td style="text-align: center;">237.2</td>
+<td style="text-align: center;">7</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Bruno G.</strong></td>
+<td style="text-align: center;">386'</td>
+<td style="text-align: center;"><strong>2</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">0.36</td>
+<td style="text-align: center;">0.37</td>
+<td style="text-align: center;">47.0</td>
+<td style="text-align: center;">67.6</td>
+<td style="text-align: center;">19</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Gabriel</strong></td>
+<td style="text-align: center;">900'</td>
+<td style="text-align: center;"><strong>1</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">1.47</td>
+<td style="text-align: center;">0.25</td>
+<td style="text-align: center;">169.0</td>
+<td style="text-align: center;">47.0</td>
+<td style="text-align: center;">91</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Konsa</strong></td>
+<td style="text-align: center;">731'</td>
+<td style="text-align: center;"><strong>1</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">0.64</td>
+<td style="text-align: center;">0.04</td>
+<td style="text-align: center;">67.0</td>
+<td style="text-align: center;">19.1</td>
+<td style="text-align: center;">66</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Gyökeres</strong></td>
+<td style="text-align: center;">180'</td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;"><strong>1</strong></td>
+<td style="text-align: center;">0.11</td>
+<td style="text-align: center;">0.49</td>
+<td style="text-align: center;">35.0</td>
+<td style="text-align: center;">85.5</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Raya</strong></td>
+<td style="text-align: center;">900'</td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">0.01</td>
+<td style="text-align: center;">0.0</td>
+<td style="text-align: center;">0.2</td>
+<td style="text-align: center;">15</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Lewis-Skelly</strong></td>
+<td style="text-align: center;">428'</td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">0.22</td>
+<td style="text-align: center;">0.64</td>
+<td style="text-align: center;">31.0</td>
+<td style="text-align: center;">66.0</td>
+<td style="text-align: center;">15</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>J.Timber</strong></td>
+<td style="text-align: center;">335'</td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">0.02</td>
+<td style="text-align: center;">0.57</td>
+<td style="text-align: center;">24.0</td>
+<td style="text-align: center;">89.0</td>
+<td style="text-align: center;">18</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Eze</strong></td>
+<td style="text-align: center;">230'</td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">0.19</td>
+<td style="text-align: center;">0.31</td>
+<td style="text-align: center;">44.0</td>
+<td style="text-align: center;">25.7</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Merino</strong></td>
+<td style="text-align: center;">202'</td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">0.82</td>
+<td style="text-align: center;">0.36</td>
+<td style="text-align: center;">73.0</td>
+<td style="text-align: center;">17.7</td>
+<td style="text-align: center;">6</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Mosquera</strong></td>
+<td style="text-align: center;">168'</td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;"><strong>0</strong></td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">0.01</td>
+<td style="text-align: center;">0.0</td>
+<td style="text-align: center;">2.0</td>
+<td style="text-align: center;">10</td>
+</tr>
+</tbody>
+</table>
+<h3>👑 プレミアリーグ個人ランキング TOP 5</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">順位</th>
+<th style="text-align: left;">⚽ 得点王争い</th>
+<th style="text-align: left;">🎯 アシスト王争い</th>
+<th style="text-align: left;">🔥 ゴール期待値(xG)上位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">1位</td>
+<td style="text-align: left;"><strong>Haaland</strong> (MCI) - <strong>9G</strong></td>
+<td style="text-align: left;"><strong>Groß</strong> (BHA) - <strong>6A</strong></td>
+<td style="text-align: left;"><strong>Barry</strong> (EVE) - <strong>7.29</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">2位</td>
+<td style="text-align: left;"><strong>Isak</strong> (LIV) - <strong>7G</strong></td>
+<td style="text-align: left;"><strong>Wirtz</strong> (LIV) - <strong>5A</strong></td>
+<td style="text-align: left;"><strong>Haaland</strong> (MCI) - <strong>7.06</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">3位</td>
+<td style="text-align: left;"><strong>N.Jackson</strong> (AVL) - <strong>6G</strong></td>
+<td style="text-align: left;"><strong>Rice</strong> (ARS) - <strong>5A</strong></td>
+<td style="text-align: left;"><strong>Isak</strong> (LIV) - <strong>4.88</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">4位</td>
+<td style="text-align: left;"><strong>Barry</strong> (EVE) - <strong>6G</strong></td>
+<td style="text-align: left;"><strong>Gvardiol</strong> (MCI) - <strong>4A</strong></td>
+<td style="text-align: left;"><strong>Mbeumo</strong> (MUN) - <strong>4.63</strong></td>
+</tr>
+<tr>
+<td style="text-align: center;">5位</td>
+<td style="text-align: left;"><strong>João Pedro</strong> (CHE) - <strong>5G</strong></td>
+<td style="text-align: left;"><strong>Cunha</strong> (MUN) - <strong>4A</strong></td>
+<td style="text-align: left;"><strong>Evanilson</strong> (BOU) - <strong>4.45</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>🏆 プレミアリーグ 最新順位表</h3>
 <table>
 <thead>
 <tr>
@@ -855,15 +1200,63 @@
 </table></div>
   </div>
 <script>
-  function switchTab(id, el) {
-    document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    el.classList.add('active');
+  const tabIds = ['news', 'stats', 'table'];
+  const btnIds = ['btn-news', 'btn-stats', 'btn-table'];
+  let currentTab = 0;
+
+  function switchTab(index) {
+    currentTab = index;
+    tabIds.forEach((id, i) => {
+      document.getElementById(id).classList.toggle('active', i === index);
+      document.getElementById(btnIds[i]).classList.toggle('active', i === index);
+    });
+    window.scrollTo(0, 0);
   }
-  try {
-    localStorage.setItem('arsenal_hub_cache', document.getElementById('app').innerHTML);
-  } catch(e) {}
+
+  function forceReload() {
+    const btn = document.querySelector('.reload-btn');
+    btn.innerText = '⌛ 読込中...';
+    window.location.replace(window.location.pathname + '?t=' + new Date().getTime());
+  }
+
+  let startX = 0, startY = 0, isPulling = false, touchedTable = false;
+  const ptr = document.getElementById('ptr-indicator');
+
+  document.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isPulling = (window.scrollY === 0);
+    // 表（テーブル）の上を触っている時は横スワイプのタブ切り替えを無効化
+    touchedTable = Boolean(e.target.closest('table'));
+  }, {passive: true});
+
+  document.addEventListener('touchmove', e => {
+    if (!isPulling) return;
+    const diffY = e.touches[0].clientY - startY;
+    const diffX = Math.abs(e.touches[0].clientX - startX);
+    if (diffY > 65 && diffY > diffX * 2) {
+      ptr.style.height = '32px';
+    }
+  }, {passive: true});
+
+  document.addEventListener('touchend', e => {
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = endX - startX;
+    const diffY = endY - startY;
+
+    if (isPulling && diffY > 90 && Math.abs(diffX) < 50) {
+      ptr.innerText = '🔄 更新しています...';
+      forceReload();
+      return;
+    }
+    ptr.style.height = '0px';
+
+    if (!touchedTable && Math.abs(diffX) > 75 && Math.abs(diffX) > Math.abs(diffY) * 1.8) {
+      if (diffX < 0 && currentTab < 2) switchTab(currentTab + 1);
+      if (diffX > 0 && currentTab > 0) switchTab(currentTab - 1);
+    }
+  }, {passive: true});
 </script>
 </body>
 </html>
