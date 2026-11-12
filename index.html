@@ -20,6 +20,7 @@
   .content.active { display: block; }
   h2 { font-size: 1.05rem; background: #1e1e1e; padding: 6px 10px; border-left: 3px solid #ef0107; margin: 18px 0 8px; }
   h3 { font-size: 1rem; color: #ff9999; margin: 16px 0 6px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+  h4 { font-size: 0.92rem; color: #ffcc00; margin: 14px 0 4px; }
   details { background: #181818; border: 1px solid #2a2a2a; border-radius: 6px; margin-bottom: 8px; padding: 8px 10px; }
   summary { font-weight: bold; cursor: pointer; outline: none; list-style: none; }
   summary::-webkit-details-marker { display: none; }
@@ -39,7 +40,7 @@
   <div id="app">
     <div class="header">
       <h1>🔴 Arsenal & PL Hub</h1>
-      <button class="reload-btn" onclick="forceReload()">🔄 2026/11/12 20:32 更新</button>
+      <button class="reload-btn" onclick="forceReload()">🔄 2026/11/12 20:57 更新</button>
     </div>
     <div class='next-box'><b>⏰ 次回PL試合: Newcastle vs Arsenal</b><br>日本時間: <span style='color:#ffcc00;font-weight:bold;'>2026年11月22日(Sun) 02:30</span> キックオフ (PL 第11節)</div>
     <div class="tabs">
@@ -47,356 +48,549 @@
       <div class="tab-btn" id="btn-stats" onclick="switchTab(1)">📊 前回試合スタッツ</div>
       <div class="tab-btn" id="btn-table" onclick="switchTab(2)">🏆 順位＆個人ランク</div>
     </div>
-    <div id="news" class="content active"><h2>🔴 アーセナル・トップチーム最新ニュース（11件）</h2>
+    <section id="news" class="content active"><p>要約生成エラー (gemini-3.5-flash): 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}</p>
+<h2>⚔️ ビッグ6動向（8件 ※シティ/リヴァプール/チェルシー/Utd/スパーズ）</h2>
 <details>
-  <summary>🔴 [Guardian] ウーデゴールが粘るハルを撃破する決勝弾、アーセナルの首位独走をけん引</summary>
-  <div class="detail-box">
-    <ul>
-      <li><b>要点・背景：</b>プレミアリーグ第11節でアーセナルはハル・シティと対戦。堅守を見せる相手に対し、主将マルティン・ウーデゴールが残り20分で貴重な決勝点を挙げ、1-0で辛勝を収めた。</li>
-      <li><b>発言・引用：</b>ミケル・アルテタ監督は「非常に粘り強い相手に対し、最後まで辛抱強く戦い続ける姿勢が実を結んだ。マルティンの冷静なフィニッシュがチームを救ってくれた」とコメントした。</li>
-      <li><b>戦術・詳細データ：</b>ウーデゴールは中盤で巧みにタクトを振るいつつ、相手ブロックの隙を突いてペナルティエリア内に侵入。試合を決める唯一のシュートを叩き込んだ。なお、前半にはカイ・ハヴェルツがエリア内でユニフォームを引っ張られたもののPKが与えられない場面もあった。</li>
-      <li><b>今後の見通し：</b>首位の座を強固なものとし、過密日程が続くシーズン中盤戦に向けて勢いを維持している。</li>
-    </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/07/arsenal-hull-premier-league-match-report" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
-  </div>
+<summary>⚔️ 【マンチェスター・ユナイテッド】ポチェッティーノ新監督招聘の噂が再燃、混迷を極めるオールド・トラッフォード</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>過去13年間で失敗を繰り返してきたマンチェスター・ユナイテッドが、再びマウリシオ・ポチェッティーノ監督の招聘に動いていると報じられた。クラブ構造の抜本的改革が進まぬ中、監督交代の無限ループに陥っている。</li>
+<li><b>監督・選手の発言：</b>熟練のサッカージャーナリストは「トップクラブでの過酷な経験で傷ついたポチェッティーノだが、ユナイテッドの何人かの選手には彼のスタイルが合致する可能性がある」と指摘している。</li>
+<li><b>戦術・チーム事情：</b>プレッシングと強度の高いフットボールを移植できるかが課題。チーム内には前線の推進力を活かせる素材はあるものの、守備の崩壊と戦術的確執が慢性化している。</li>
+<li><b>今後の影響：</b>監督交代が実現しても、フロント陣の構造的課題が解決されない限り、トップ4復帰への道のりは平坦ではない。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/11/mauricio-pochettino-manchester-united-old-trafford-manager" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
 </details>
-
 <details>
-  <summary>🔴 [Guardian] 守護神ダビド・ラヤ「昨季CL決勝の悔しさが血肉に」スラヴィア戦で好セーブ連発</summary>
-  <div class="detail-box">
-    <ul>
-      <li><b>要点・背景：</b>昨季UEFAチャンピオンズリーグ決勝でPSGにPK戦の末敗れた痛みを胸に、ダビド・ラヤが今季の欧州制覇への強い執念を語った。スラヴィア・プラハ戦（1-0勝利）でも圧巻の決定機阻止を見せた。</li>
-      <li><b>発言・引用：</b>ラヤは「あの悔しさは僕たちの血の中に流れている。今年こそそれを最高の結果に変えるのは僕たち次第だ。自己確信こそが決定的なセーブを生む」と胸中を明かした。</li>
-      <li><b>戦術・詳細データ：</b>プラハ戦で数度の至近距離からのシュートを驚異的な反応で阻止。アーセナルはCLリーグフェーズ4試合を終えて勝ち点10（3位）と好位置につけている。</li>
-      <li><b>今後の見通し：</b>CLグループステージの上位通過へ向け、ラヤの安定したセービングとビルドアップへの貢献が不可欠となる。</li>
-    </ul>
-    <p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/05/arsenal-pain-champions-league-final-defeat-david-raya" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
-  </div>
+<summary>⚔️ 【マンチェスター・シティ】マレスカ体制でまさかの公式戦3連敗、開幕7連勝からの急転直下に潜む課題</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>開幕から7連勝を飾ったエンツォ・マレスカ監督率いるマンチェスター・シティが公式戦3連敗を喫した。トップリーグにおける開幕7連勝後の3連敗は1904-05シーズンのシェフィールド・ウェンズデイ以来、実に120年以上ぶりの珍事となった。</li>
+<li><b>監督・選手の発言：</b>マレスカ監督は「3つの敗戦はそれぞれ異なる展開だったが、インターナショナルブレイクを利用して全面的にチームを再評価し、再構築を図る」と危機感を露わにしている。</li>
+<li><b>戦術・チーム事情：</b>ノッティンガム・フォレスト戦での敗戦をはじめ、ビルドアップ時のミスやデュエルでの敗北が目立つ。戦術的欠陥だけでなく、精神的な集中力低下も指摘されている。</li>
+<li><b>今後の影響：</b>代表ウィーク明けに守備強度の向上とポゼッション精度の再整備が急務。首位追撃に向けてこれ以上の足踏みは許されない。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/09/manchester-city-enzo-maresca-premier-league" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
 </details>
-
 <details>
-  <summary>🔴 [JustArsenal] ギョケレシュが出場時間減少の噂を否定「アルテタ監督との関係は極めて良好」</summary>
-  <div class="detail-box">
-    <ul>
-      <li><b>要点・背景：</b>今夏大きな期待とともに加入したスウェーデン代表FWヴィクトル・ギョケレシュが、先発機会の少なさから囁かれる指揮官との不仲説を真っ向から否定した。</li>
-      <li><b>発言・引用：</b>ギョケレシュは「ミケル（アルテタ）とのコミュニケーションは常にオープンで素晴らしい。スタメンから外れることがあっても、信頼関係や協力姿勢に何の影響もない」と強調した。</li>
-      <li><b>戦術・詳細データ：</b>スポルティングCP時代の圧倒的な得点力をプレミアリーグで再現するまでの適応段階にあり、ハヴェルツやガブリエウ・ジェズスとのポジション争いが激化している。</li>
-      <li><b>今後の見通し：</b>過密日程の中でターンオーバーによる先発機会の増加が見込まれており、チーム戦術へのさらなるフィットが期待される。</li>
-    </ul>
-    <p class="ext-link"><a href="https://www.justarsenal.com/gyokeres-insists-he-still-has-a-very-good-relationship-with-mikel-arteta/425627" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
-  </div>
+<summary>⚔️ 【マンチェスター・ユナイテッド】ヴィラとの8ゴール乱打戦を4-4ドローで終えるも降格圏付近で低迷</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>ホームのオールド・トラッフォードでアストン・ヴィラと対戦したユナイテッドは、2点ビハインドを2度撥ね返す怒涛の反撃を見せ、4-4の壮絶な引き分けに持ち込んだ。</li>
+<li><b>監督・選手の発言：</b>ヴィラのウナイ・エメリ監督は、同点ゴールの場面でユナイテッド側GKセンネ・ラムエンスが自軍GK鈴木彩艶に接触したと主張し「明らかなファールだった」と激怒した。</li>
+<li><b>戦術・チーム事情：</b>ヨシュア・ザークツィーのアディショナルタイム弾、さらに96分のパトリック・ドルグの劇的ヘディング弾で土壇場で追いつく粘りを見せたが、守備の全開状態は改善されていない。今季勝利はアウグストのイプスウィッチ戦の1勝のみ。</li>
+<li><b>今後の影響：</b>得失点差で最下位付近を脱出し16位へ浮上したものの、依然として降格ゾーンの足音が聞こえる深刻な順位に位置している。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/live/2026/nov/08/man-utd-v-aston-villa-premier-league-live" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
 </details>
-
 <details>
-  <summary>🔴 [JustArsenal] ギョケレシュがアーセナルの攻撃を劇的に変革できる理由：現地メディア分析</summary>
-  <div class="detail-box">
-    <ul>
-      <li><b>要点・背景：</b>鳴り物入りで加入も初期の適応に苦しむギョケレシュだが、現地専門家は彼の強力なフィジカルとボックス内での得点感覚がチームの攻撃バリエーションを拡大すると分析。</li>
-      <li><b>発言・引用：</b>現地論客は「大型移籍直後に即座にフィットしないのはよくあること。彼のフィジカルと裏への抜け出しはシーズン後半戦で必ず真価を発揮する」と指摘した。</li>
-      <li><b>戦術・詳細データ：</b>前線でのボールキープと相手センターバックを引きつける動きにより、サカやマルティネッリなどウイング陣の攻撃スペース創出に大きく寄与するポテンシャルを秘めている。</li>
-      <li><b>今後の见通し：</b>戦術的戦術理解と周囲との連携が深まれば、シーズン後半における決定力不足解消のキーマンとなり得る。</li>
-    </ul>
-    <p class="ext-link"><a href="https://www.justarsenal.com/why-viktor-gyokeres-could-still-transform-arsenals-attack-opinion/425620" target="_blank" rel="noopener noreferrer">🔗 元記事(英語)を開く ※通信発生</a></p>
-  </div>
+<summary>⚔️ 【マンチェスター・ユナイテッド】ドルグの96分同点弾で危機を回避も、マイケル・キャリック暫定体制の未来に暗雲</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>ミッドウィークのローマ戦の勝利に続き、リーグ戦でも弾みをつけたいユナイテッドだったが、アストン・ヴィラ相手に守備が崩壊。パトリック・ドルグの起死回生の同点弾で敗北を免れた。</li>
+<li><b>監督・選手の発言：</b>マイケル・キャリック監督は前戦の熱量を引き継ぐことを求めていたが、試合後は「カオスな展開だったが追いついたスピリットは評価できる」と述べるにとどまった。</li>
+<li><b>戦術・チーム事情：</b>セットプレー時にGKラムエンスを前線へ上げる捨て身の攻撃が功を奏したものの、守備の全般的な連動性と個のDUELにおける脆さが浮き彫りとなった。</li>
+<li><b>今後の影響：</b>この土壇場のドローでキャリックの解任劇は一時的に先送りされた形だが、次節以降の結果次第では本格的な新監督招聘へ動く可能性がある。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/dorgu-rescues-point-manchester-united-aston-villa-match-report" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
 </details>
-
 <details>
-  <summary>🔴 [Arseblog] マルティン・ズビメンディがアトレティコ移籍の噂を一蹴「1月退団など事実無根」</summary>
-  <div class="detail-box">
-    <ul>
-      <li><b>要点・背景
-<p>要約生成エラー (gemini-3.6-flash): 504 DEADLINE_EXCEEDED. {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}</p></div>
-    <div id="stats" class="content"><h3>⚽ Arsenal 1 - 0 Hull City (Premier League)</h3>
-<h4>🎯 ゴール＆試合イベント詳細</h4>
-<table>
-<thead>
-<tr>
-<th style="text-align: left;">時間</th>
-<th style="text-align: left;">チーム</th>
-<th style="text-align: left;">選手</th>
-<th style="text-align: left;">内容</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: left;">72'</td>
-<td style="text-align: left;">Arsenal</td>
-<td style="text-align: left;"><strong>Martin Ødegaard</strong></td>
-<td style="text-align: left;"></td>
-</tr>
-</tbody>
-</table>
-<h4>👥 アーセナル出場選手＆個人スタッツ</h4>
-<table>
-<thead>
-<tr>
-<th style="text-align: left;">選手</th>
-<th style="text-align: center;">ポジ</th>
-<th style="text-align: center;">出場</th>
-<th style="text-align: center;">シュート(枠内)</th>
-<th style="text-align: center;">G / A</th>
-<th style="text-align: center;">タックル / ファウル</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: left;"><strong>David Raya</strong></td>
-<td style="text-align: center;">G</td>
-<td style="text-align: center;">先発</td>
-<td style="text-align: center;">0 (0)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:0</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Gabriel Magalhães</strong></td>
-<td style="text-align: center;">CD-L</td>
-<td style="text-align: center;">先発</td>
-<td style="text-align: center;">0 (0)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:1</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Ezri Konsa</strong></td>
-<td style="text-align: center;">CD-R</td>
-<td style="text-align: center;">先発</td>
-<td style="text-align: center;">1 (0)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:0</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Riccardo Calafiori</strong></td>
-<td style="text-align: center;">LB</td>
-<td style="text-align: center;">先発</td>
-<td style="text-align: center;">0 (0)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:1</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Jurriën Timber</strong></td>
-<td style="text-align: center;">RB</td>
-<td style="text-align: center;">先発</td>
-<td style="text-align: center;">0 (0)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:1</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Martin Ødegaard</strong></td>
-<td style="text-align: center;">AM</td>
-<td style="text-align: center;">先発</td>
-<td style="text-align: center;">2 (1)</td>
-<td style="text-align: center;">1G / 0A</td>
-<td style="text-align: center;">T:0 / F:0</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Declan Rice</strong></td>
-<td style="text-align: center;">LM</td>
-<td style="text-align: center;">先発</td>
-<td style="text-align: center;">3 (2)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:0</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Bruno Guimarães</strong></td>
-<td style="text-align: center;">RM</td>
-<td style="text-align: center;">先発</td>
-<td style="text-align: center;">2 (0)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:1</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Kai Havertz</strong></td>
-<td style="text-align: center;">F</td>
-<td style="text-align: center;">先発</td>
-<td style="text-align: center;">0 (0)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:0</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Christos Tzolis</strong></td>
-<td style="text-align: center;">AM-L</td>
-<td style="text-align: center;">先発</td>
-<td style="text-align: center;">4 (2)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:0</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Noni Madueke</strong></td>
-<td style="text-align: center;">AM-R</td>
-<td style="text-align: center;">先発</td>
-<td style="text-align: center;">4 (2)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:0</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Viktor Gyökeres</strong></td>
-<td style="text-align: center;">SUB</td>
-<td style="text-align: center;">交代</td>
-<td style="text-align: center;">1 (1)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:0</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Mikel Merino</strong></td>
-<td style="text-align: center;">SUB</td>
-<td style="text-align: center;">交代</td>
-<td style="text-align: center;">2 (2)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:1</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Martín Zubimendi</strong></td>
-<td style="text-align: center;">SUB</td>
-<td style="text-align: center;">交代</td>
-<td style="text-align: center;">0 (0)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:0</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Piero Hincapié</strong></td>
-<td style="text-align: center;">SUB</td>
-<td style="text-align: center;">交代</td>
-<td style="text-align: center;">0 (0)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:0</td>
-</tr>
-<tr>
-<td style="text-align: left;"><strong>Eberechi Eze</strong></td>
-<td style="text-align: center;">SUB</td>
-<td style="text-align: center;">交代</td>
-<td style="text-align: center;">2 (0)</td>
-<td style="text-align: center;">0G / 0A</td>
-<td style="text-align: center;">T:0 / F:1</td>
-</tr>
-</tbody>
-</table>
-<h4>📊 チーム詳細スタッツ比較</h4>
+<summary>⚔️ 【チェルシー】最下位サンダーランドに0-1で屈退、昨季最終節の悪夢が再燃</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>スタジアム・オブ・ライトに乗り込んだチェルシーは、試合開始早々の冬の寒さを吹き飛ばすサンダーランドの運動量に押され、エンゾ・ル・フェのPK弾に沈み0-1で完封負けを喫した。</li>
+<li><b>監督・選手の発言：</b>相手指揮官ル・ブリスは「強烈なアイデンティティと強度、チームの一体感が勝利をもたらした」と絶賛。チェルシー側は前線の決定力不足を露呈する結果となった。</li>
+<li><b>戦術・チーム事情：</b>チェルシーはポゼッション率で優位に立ちながらも、最下位サンダーランドのコンパクトなブロックを崩せず、カウンターからPKを与えて失点。リアム・デラップ等の前線陣が不発に終わった。</li>
+<li><b>今後の影響：</b>格下相手に手痛い黒星を喫したことで上位陣との勝ち点差が拡大。欧州権獲得に向けて立て直しが急務となっている。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/sunderland-chelsea-premier-league-match-report" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>⚔️ 【リヴァプール】ヴィルツの鮮烈弾でクリスタル・パレスに3-1快勝、首位追撃へ再始動</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>前節アーセナル戦とチャンピオンズリーグのフェネルバフチェ戦で連敗を喫していたリヴァプールだったが、アウェイでクリスタル・パレスを3-1で下し、見事に再起を果たして4位へ浮上した。</li>
+<li><b>監督・選手の発言：</b>決勝点を挙げたフロリアン・ヴィルツのプレースタイルについて「プレッシャー下でのファーストタイムシュートを完璧に決める滑らかな技術こそ、彼の真骨頂だ」と現地から高い評価が寄せられている。</li>
+<li><b>戦術・チーム事情：</b>アレクシス・マック・アリスターのヘディングで先制後、ブラッドリー・バルコラの右サイドからのクロスにヴィルツが合わせ追加点。高い位置での奪取から迅速なショートカウンターが機能した。</li>
+<li><b>今後の影響：</b>連敗の悪夢を払拭し勝ち点3を積み上げたリヴァプール。首位アーセナルを追撃するための勢いを取り戻す一戦となった。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/crystal-palace-liverpool-premier-league-match-report" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>⚔️ 【マンチェスター・シティ】ノッティンガム・フォレストに1-3敗北、マレスカ監督は選手の「闘争心欠如」を激しく叱責</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>敵地でノッティンガム・フォレストと対戦したシティは、ジャイル・クーニャに奪われた先制点を皮切りに、リアム・デラップにカウンターから2ゴールを許し1-3で敗戦。リーグ3連敗となった。</li>
+<li><b>監督・選手の発言：</b>エンツォ・マレスカ監督は「今日の試合の最大の問題は全体的な戦う意欲と強度だ。対戦相手の気迫に我々は全く太刀打ちできなかった」と怒りを露わにした。</li>
+<li><b>戦術・チーム事情：</b>グヴァルディオルがボールを奪われて失点に関与するなど、守備の個人のポカと強度の低さが致命的に。フォレストのダイレクトなカウンターの毒牙にかかった。</li>
+<li><b>今後の影響：</b>代表中断期間での修正が失敗すれば、リーグタイトル争いからの早期脱落すら懸念される危機的状況を迎えている。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/07/enzo-maresca-nottingham-forest-manchester-city-premier-league" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>⚔️ 【チェルシー】最下位サンダーランドの金星献上により浮上のきっかけを失う</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>サンダーランドが今季初のホーム勝利を挙げると同時に最下位を脱出した一方、チェルシーは敵地での失態によりサポーターの失望を買う結果となった。</li>
+<li><b>監督・選手の発言：</b>「相手の激しい球際に対してリアクションが遅れた」とチーム内からの反省が聞かれたものの、ピッチ上での解決策は見出せなかった。</li>
+<li><b>戦術・チーム事情：</b>攻撃陣の連動性を欠き、シュート数で上回りながらも相手の強固な守備ブロックとGKの好セーブに阻まれ無得点に終わった。</li>
+<li><b>今後の影響：</b>次節に向けて前線の組み合わせ再考と、メンタル面での再構築が急務となっている。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/live/2026/nov/08/crystal-palace-v-liverpool-brighton-v-brentford-and-more-premier-league-live" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<h2>🦁 その他プレミア14クラブ動向（8件 ※ビッグ6と同数・半々）</h2>
+<details>
+<summary>🦁 【ノッティンガム・フォレスト】デラップの爆発的な推進力で王者シティを撃破、4月以来のホーム勝利</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>今季チェルシーから移籍し苦しんでいた23歳のFWリアム・デラップが、マンチェスター・シティ相手にダイナミックなカウンターから2ゴールを叩き込み、チームを3-1の勝利へ導いた。</li>
+<li><b>発言・詳細：</b>オリヴァー・グラスナー監督が彼への忍耐を保ち続けたことが実を結んだ。かつてイプスウィッチで12ゴールを挙げたポテンシャルがシティ相手に爆発した格好だ。</li>
+<li><b>チーム事情・今後：</b>強力なフィジカルと爆発的な加速を活かした素早い切替がハマり、フォレストは4月以来となる待望のホームリーグ戦勝利を飾った。順位向上に向けて大きな弾みとなる。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/09/premier-league-10-talking-points-weekend-action" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🦁 【ブライトン】ディエゴ・ゴメスの圧巻ロングシュートでブレントフォードを下し単独2位へ躍進</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>ブライトンはアメックス・スタジアムでブレントフォードと対戦し、ディエゴ・ゴメスのスーパーミドルなどで2-0の完勝。アーセナルに次ぐリーグ単独2位へ浮上した。</li>
+<li><b>発言・詳細：</b>キース・アンドリューズ代理監督率いるブレントフォードは、イゴール・チアゴの一発退場が響き劣勢に立たされた。ファビアン・ヒュルツェラー監督の戦術が完全に浸透している。</li>
+<li><b>チーム事情・今後：</b>フットボールマネージャーのゲームのような快進撃を続けるブライトン。巧みな組織力と個のスキルを融合させ、欧州権内を力強く維持している。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/brighton-brentford-premier-league-match-report" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🦁 【ボーンマス】エヴァニウソンの5試合連続弾でイプスウィッチを下し、クラブ記録の8連勝を達成</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>ボーンマスは敵地ポートマン・ロードでイプスウィッチを2-1で退け、クラブタイ記録となる破竹の公式戦8連勝を飾った。</li>
+<li><b>発言・詳細：</b>マルコ・ローゼ監督はチームの闘志を力強く称賛。前線でキレを見せるエヴァニウソンは開始5分で先制点を挙げ、個人としてプレミアリーグ5試合連続ゴール（今季7点目）を記録した。</li>
+<li><b>チーム事情・今後：</b>昨季全体のゴール数を早くも上回ったエヴァニウソンの覚醒が好調を牽引。攻守のバランスが極めて高く、勢いは止まりそうにない。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/08/ipswich-bournemouth-premier-league-match-report" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🦁 【フルアム】ムニスの土壇場同点弾でニューカッスルと1-1ドロー、アルベロア監督は胸を撫で下ろす</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>クレイヴン・コテージで行われたアルバロ・アルベロア率いるフルアムとマティアス・ヤイスレ率いるニューカッスルの若手外国人指揮官対決は、1-1の引き分けに終わった。</li>
+<li><b>発言・詳細：</b>ニューカッスルがジェイコブ・マーフィーの豪快なミドルで先制するも、フルアムは終盤にロドリゴ・ムニスが昨季開幕節以来となる起死回生のゴールを決めて追いついた。</li>
+<li><b>チーム事情・今後：</b>フルアムは強靭さや推進力に課題を残したものの、貴重な勝ち点1を獲得。ニューカッスルはトップハーフ浮上の絶好の機会を逃す結果となった。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/2026/nov/07/fulham-newcastle-premier-league-match-report" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🦁 【クリスタル・パレス】ピエール・サージュ監督解任の危機、後任候補にトマス・フランクらの名が浮上</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>リヴァプールに1-3で敗れて最下位争いに巻き込まれているクリスタル・パレスにて、ピエール・サージュ監督の進退が極めて危うくなっている。</li>
+<li><b>発言・詳細：</b>クラブ上層部は成績不振を重く見ており、後任の最有力候補としてブレントフォードなどを指揮したトマス・フランク監督に白羽の矢を立てていると報じられた。</li>
+<li><b>チーム事情・今後：</b>得点力の低迷と守備の脆さが露呈しており、代表ウィーク中の監督交代が現実味を帯びている。</li>
+</ul>
+<p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c623dpeey3e4o?at_medium=RSS&amp;at_campaign=rss" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🦁 【サンダーランド】ル・フェの決定的PKでチェルシーを撃破し最下位脱出、反撃の口火を切る</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>サンダーランドは強豪チェルシーを1-0で下し、勝ち点を積み上げてついにプレミアリーグ最下位を脱出した。</li>
+<li><b>発言・詳細：</b>バンジャマン・ル・フェの冷徹なペナルティキックが決勝点となり、スタジアムは大歓声に包まれた。チームの規律ある守備が光った。</li>
+<li><b>チーム事情・今後：</b>昨季最終節でチェルシーを破り欧州圏内を決めた再現となり、相性の良さを証明。この劇的勝利で残留争い脱出に向けた弾みをつけた。</li>
+</ul>
+<p class="ext-link"><a href="https://www.theguardian.com/football/live/2026/nov/08/crystal-palace-v-liverpool-brighton-v-brentford-and-more-premier-league-live" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🦁 【ブレントフォード】イゴール・チアゴの一発退場が響きブライトンに0-2敗戦、連勝ストップ</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>敵地に乗り込んだブレントフォードだったが、FWイゴール・チアゴが直接レッドカードを受けて退場となり、数的人数不利に陥って0-2で敗れた。</li>
+<li><b>発言・詳細：</b>10人での戦いを強いられ、ブライトンのディエゴ・ゴメスの遠距離シュートなどで突き放される苦しい展開となった。</li>
+<li><b>チーム事情・ gloom：</b>エースの出場停止は次節以降の大きな痛手となり、戦術の再考が迫られている。</li>
+</ul>
+<p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/videos/cry836l4q56po?at_medium=RSS&amp;at_campaign=rss" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🦁 【ニューカッスル】ジェイコブ・マーフィーの豪快な先制弾実らず、フルアムと引き分け好機を散らす</summary>
+<div class="detail-box">
+<ul>
+<li><b>要点・背景：</b>アウェイでのフルアム戦に臨んだニューカッスルは、マーフィーの素晴らしい一撃で先制したものの、終盤に追いつかれ1-1で勝ち点を分け合った。</li>
+<li><b>発言・詳細：</b>マティアス・ヤイスレ監督が掲げるハイゲイン・ハイテンションなスタイルを試合通して表現しきれず、試合終了間際に隙を見せてしまった。</li>
+<li><b>チーム事情・今後：</b>勝ち点3を逃したことでトップハーフ浮上のチャンスを失い、中断期間明けの守備のゲームプラン遂行が課題となっている。</li>
+</ul>
+<p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/videos/cm2d69p2x3g7o?at_medium=RSS&amp;at_campaign=rss" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<h2>🔄 移籍の噂・ゴシップまとめ（6件）</h2>
+<details>
+<summary>🔄 【アーセナル/アレックス・スコット】アーセナルがボーンマスの万能MF獲得に向けて打診開始（BBC Gossip）</summary>
+<div class="detail-box">
+<ul>
+<li><b>移籍情報詳細：</b>アーセナルはボーンマス所属のイングランド人MFアレックス・スコットの動向を注視しており、移籍可能性についてクラブ間での初期接触を行った。中盤の層を厚くするためのターゲットと見られている。</li>
+</ul>
+<p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c62l51xyl98no?at_medium=RSS&amp;at_campaign=rss" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🔄 【マンチェスター・ユナイテッド/守備陣補強】マン・Uが今冬のターゲットに2名のDFを追加（BBC Gossip）</summary>
+<div class="detail-box">
+<ul>
+<li><b>移籍情報詳細：</b>守備崩壊が続くマンチェスター・ユナイテッドは、守備組織の立て直しを目指してターゲットリストに2名のセンターバックを追加した。1月移籍市場での即戦力獲得を画策している。</li>
+</ul>
+<p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c62l51xyl98no?at_medium=RSS&amp;at_campaign=rss" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🔄 【アストン・ヴィラ/ロメオ・ラヴィア】ヴィラがチェルシーで出場機会を減らすラヴィアの獲得を検討（BBC Gossip）</summary>
+<div class="detail-box">
+<ul>
+<li><b>移籍情報詳細：</b>アストン・ヴィラは、チェルシーで厚い層に埋もれている中盤MFロメオ・ラヴィアの状況を注視しており、期限付き移籍を含むオファーの可能性を探っている。</li>
+</ul>
+<p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/c62l51xyl98no?at_medium=RSS&amp;at_campaign=rss" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🔄 【アーセナル/エンドリッキ】アーセナルがレアル・マドリードの超新星FWエンドリッキをレーダーに捕捉（BBC Gossip）</summary>
+<div class="detail-box">
+<ul>
+<li><b>移籍情報詳細：</b>アーセナルがレアル・マドリードに所属するブラジル代表FWエンドリッキの獲得に向け強い関心を示している。出場時間を求める若手スターに対しローン移籍のオファーを検討中。</li>
+</ul>
+<p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cq8jzjz9x23jo?at_medium=RSS&amp;at_campaign=rss" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🔄 【リヴァプール/ジェレミー・フリンポン】右SBフリンポンに退団の意思なし、アンフィールド留まりを強調（BBC Gossip）</summary>
+<div class="detail-box">
+<ul>
+<li><b>移籍情報詳細：</b>今冬の退団が一部で噂されていたリヴァプールの右サイドバック、ジェレミー・フリンポンだが、アンフィールドを離れる選択肢はなく、チームでのポジション争いに集中する意向である。</li>
+</ul>
+<p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cq8jzjz9x23jo?at_medium=RSS&amp;at_campaign=rss" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details>
+<details>
+<summary>🔄 【ニューカッスル・サンダーランド/ディオン・ベルヨ】タイン・ウェア・ダービーのライバルがクロアチア人FW争奪戦で激突（BBC Gossip）</summary>
+<div class="detail-box">
+<ul>
+<li><b>移籍情報詳細：</b>ニューカッスルとサンダーランドの両クラブが、クロアチア代表ストライカーのディオン・ベルヨ獲得に向けてスカウトを派遣しており、宿敵同士による激しい獲得レースが予想される。</li>
+</ul>
+<p class="ext-link"><a href="https://www.bbc.co.uk/sport/football/articles/cq8jzjz9x23jo?at_medium=RSS&amp;at_campaign=rss" rel="noopener noreferrer" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+</div>
+</details></section>
+    <section id="stats" class="content"><h3>⚽ Arsenal 1 - 0 Hull City (PL 第10節 2026/11/08)</h3>
+<h4>🎯 試合サマリー＆主要イベント</h4>
 <table>
 <thead>
 <tr>
 <th style="text-align: left;">項目</th>
+<th style="text-align: left;">Arsenal</th>
+<th style="text-align: left;">Hull City</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>⚽ ゴール</strong></td>
+<td style="text-align: left;">Ødegaard(1)</td>
+<td style="text-align: left;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>🎯 アシスト</strong></td>
+<td style="text-align: left;">Madueke(1)</td>
+<td style="text-align: left;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>🟨 イエローカード</strong></td>
+<td style="text-align: left;">-</td>
+<td style="text-align: left;">Coyle(1), Stroud(1), Mendy(1), Gourna-Douath(1), Norton-Cuffy(1)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>🧤 GKセーブ数</strong></td>
+<td style="text-align: left;">Raya(2)</td>
+<td style="text-align: left;">Tzolakis(9)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>👑 公式MOMボーナス(3-2-1pt)</strong></td>
+<td style="text-align: left;">Ødegaard(3), Madueke(2)</td>
+<td style="text-align: left;">Tzolakis(1)</td>
+</tr>
+</tbody>
+</table>
+<h4>📊 チームスタッツ比較 (PL公式トラッキング集計)</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">指標</th>
 <th style="text-align: center;">Arsenal</th>
 <th style="text-align: center;">Hull City</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align: left;">ボール支配率 (%)</td>
-<td style="text-align: center;">66.9</td>
-<td style="text-align: center;">33.1</td>
+<td style="text-align: left;"><strong>ゴール期待値 (xG)</strong></td>
+<td style="text-align: center;"><strong>1.27</strong></td>
+<td style="text-align: center;"><strong>0.36</strong></td>
 </tr>
 <tr>
-<td style="text-align: left;">総シュート数</td>
-<td style="text-align: center;">21</td>
-<td style="text-align: center;">7</td>
+<td style="text-align: left;"><strong>アシスト期待値 (xA)</strong></td>
+<td style="text-align: center;">1.55</td>
+<td style="text-align: center;">0.24</td>
 </tr>
 <tr>
-<td style="text-align: left;">枠内シュート数</td>
-<td style="text-align: center;">10</td>
-<td style="text-align: center;">2</td>
-</tr>
-<tr>
-<td style="text-align: left;">枠内シュート率 (%)</td>
-<td style="text-align: center;">0.5</td>
-<td style="text-align: center;">0.3</td>
-</tr>
-<tr>
-<td style="text-align: left;">ブロックされたシュート</td>
-<td style="text-align: center;">6</td>
-<td style="text-align: center;">2</td>
-</tr>
-<tr>
-<td style="text-align: left;">コーナーキック</td>
-<td style="text-align: center;">7</td>
-<td style="text-align: center;">4</td>
-</tr>
-<tr>
-<td style="text-align: left;">オフサイド</td>
-<td style="text-align: center;">4</td>
-<td style="text-align: center;">1</td>
-</tr>
-<tr>
-<td style="text-align: left;">総パス数</td>
-<td style="text-align: center;">569</td>
-<td style="text-align: center;">272</td>
-</tr>
-<tr>
-<td style="text-align: left;">成功パス数</td>
-<td style="text-align: center;">490</td>
-<td style="text-align: center;">190</td>
-</tr>
-<tr>
-<td style="text-align: left;">パス成功率 (%)</td>
-<td style="text-align: center;">0.9</td>
-<td style="text-align: center;">0.7</td>
-</tr>
-<tr>
-<td style="text-align: left;">クロス総数</td>
-<td style="text-align: center;">21</td>
+<td style="text-align: left;"><strong>タックル成功数</strong></td>
+<td style="text-align: center;">9</td>
 <td style="text-align: center;">15</td>
 </tr>
 <tr>
-<td style="text-align: left;">成功クロス数</td>
-<td style="text-align: center;">5</td>
-<td style="text-align: center;">6</td>
-</tr>
-<tr>
-<td style="text-align: left;">ロングボール総数</td>
+<td style="text-align: left;"><strong>クリア・ブロック・インターセプト</strong></td>
+<td style="text-align: center;">35</td>
 <td style="text-align: center;">47</td>
-<td style="text-align: center;">73</td>
 </tr>
 <tr>
-<td style="text-align: left;">成功ロングボール数</td>
-<td style="text-align: center;">21</td>
-<td style="text-align: center;">26</td>
-</tr>
-<tr>
-<td style="text-align: left;">タックル総数</td>
-<td style="text-align: center;">9</td>
-<td style="text-align: center;">15</td>
-</tr>
-<tr>
-<td style="text-align: left;">タックル成功数</td>
-<td style="text-align: center;">6</td>
-<td style="text-align: center;">9</td>
-</tr>
-<tr>
-<td style="text-align: left;">タックル成功率 (%)</td>
-<td style="text-align: center;">0.7</td>
-<td style="text-align: center;">0.6</td>
-</tr>
-<tr>
-<td style="text-align: left;">インターセプト</td>
-<td style="text-align: center;">6</td>
-<td style="text-align: center;">11</td>
-</tr>
-<tr>
-<td style="text-align: left;">クリア数</td>
-<td style="text-align: center;">28</td>
-<td style="text-align: center;">31</td>
-</tr>
-<tr>
-<td style="text-align: left;">GKセーブ数</td>
-<td style="text-align: center;">2</td>
-<td style="text-align: center;">9</td>
-</tr>
-<tr>
-<td style="text-align: left;">ファウル数</td>
-<td style="text-align: center;">6</td>
-<td style="text-align: center;">15</td>
-</tr>
-<tr>
-<td style="text-align: left;">イエローカード</td>
-<td style="text-align: center;">0</td>
-<td style="text-align: center;">5</td>
-</tr>
-<tr>
-<td style="text-align: left;">レッドカード</td>
-<td style="text-align: center;">0</td>
-<td style="text-align: center;">0</td>
+<td style="text-align: left;"><strong>ボール回収数 (Recoveries)</strong></td>
+<td style="text-align: center;">53</td>
+<td style="text-align: center;">43</td>
 </tr>
 </tbody>
-</table></div>
-    <div id="table" class="content"><h3>🔴 アーセナル シーズン個人スタッツ一覧 (PL公式)</h3>
+</table>
+<h4>👑 この試合のアーセナル個人ランキング</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">部門</th>
+<th style="text-align: left;">🥇 1位</th>
+<th style="text-align: left;">🥈 2位</th>
+<th style="text-align: left;">🥉 3位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>公式BPS採点 (総合貢献)</strong></td>
+<td style="text-align: left;"><strong>Ødegaard</strong> (44pt)</td>
+<td style="text-align: left;">Madueke (36pt)</td>
+<td style="text-align: left;">Raya (31pt)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>守備＆デュエル回収王</strong></td>
+<td style="text-align: left;"><strong>Konsa</strong> (17回)</td>
+<td style="text-align: left;">Gabriel (15回)</td>
+<td style="text-align: left;">J.Timber (10回)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>攻撃関与期待値 (xG+xA)</strong></td>
+<td style="text-align: left;"><strong>Madueke</strong> (0.76)</td>
+<td style="text-align: left;">Ødegaard (0.58)</td>
+<td style="text-align: left;">J.Timber (0.40)</td>
+</tr>
+</tbody>
+</table>
+<h4>👥 アーセナル出場選手 個人スタッツ＆採点一覧</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">選手</th>
+<th style="text-align: center;">時間</th>
+<th style="text-align: center;">G/A</th>
+<th style="text-align: center;">xG</th>
+<th style="text-align: center;">xA</th>
+<th style="text-align: center;">タックル</th>
+<th style="text-align: center;">回収</th>
+<th style="text-align: center;">守備CBI</th>
+<th style="text-align: center;">BPS採点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Ødegaard</strong></td>
+<td style="text-align: center;">90'</td>
+<td style="text-align: center;"><strong>1G 0A</strong></td>
+<td style="text-align: center;">0.24</td>
+<td style="text-align: center;">0.34</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;"><strong>44</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Madueke</strong></td>
+<td style="text-align: center;">90'</td>
+<td style="text-align: center;"><strong>0G 1A</strong></td>
+<td style="text-align: center;">0.37</td>
+<td style="text-align: center;">0.39</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;"><strong>36</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Raya</strong></td>
+<td style="text-align: center;">90'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">7</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;"><strong>31</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>J.Timber</strong></td>
+<td style="text-align: center;">90'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">0.40</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;"><strong>31</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Gabriel</strong></td>
+<td style="text-align: center;">90'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;"><strong>29</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Konsa</strong></td>
+<td style="text-align: center;">90'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.03</td>
+<td style="text-align: center;">0.01</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;"><strong>29</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Bruno G.</strong></td>
+<td style="text-align: center;">88'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.08</td>
+<td style="text-align: center;">0.09</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;"><strong>19</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Calafiori</strong></td>
+<td style="text-align: center;">68'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">0.01</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;"><strong>26</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Tzolis</strong></td>
+<td style="text-align: center;">68'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.22</td>
+<td style="text-align: center;">0.06</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;"><strong>15</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Rice</strong></td>
+<td style="text-align: center;">62'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.13</td>
+<td style="text-align: center;">0.03</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;"><strong>14</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Havertz</strong></td>
+<td style="text-align: center;">62'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">0.02</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;"><strong>3</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Merino</strong></td>
+<td style="text-align: center;">27'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.07</td>
+<td style="text-align: center;">0.13</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;"><strong>9</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Gyökeres</strong></td>
+<td style="text-align: center;">27'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.03</td>
+<td style="text-align: center;">0.01</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;"><strong>6</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Hincapie</strong></td>
+<td style="text-align: center;">21'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;"><strong>5</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Eze</strong></td>
+<td style="text-align: center;">21'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.10</td>
+<td style="text-align: center;">0.06</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;"><strong>1</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Zubimendi</strong></td>
+<td style="text-align: center;">1'</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">0.00</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;"><strong>3</strong></td>
+</tr>
+</tbody>
+</table></section>
+    <section id="table" class="content"><h3>🔴 アーセナル シーズン個人ランキング (PL公式)</h3>
 <table>
 <thead>
 <tr>
@@ -406,9 +600,9 @@
 <th style="text-align: center;">A</th>
 <th style="text-align: center;">xG</th>
 <th style="text-align: center;">xA</th>
-<th style="text-align: center;">脅威度</th>
-<th style="text-align: center;">創造性</th>
-<th style="text-align: center;">守備貢献(T&amp;CBI)</th>
+<th style="text-align: center;">タックル</th>
+<th style="text-align: center;">ボール回収</th>
+<th style="text-align: center;">守備CBI</th>
 </tr>
 </thead>
 <tbody>
@@ -419,9 +613,9 @@
 <td style="text-align: center;"><strong>5</strong></td>
 <td style="text-align: center;">0.57</td>
 <td style="text-align: center;">2.04</td>
-<td style="text-align: center;">70.0</td>
-<td style="text-align: center;">261.8</td>
-<td style="text-align: center;">44</td>
+<td style="text-align: center;">13</td>
+<td style="text-align: center;">35</td>
+<td style="text-align: center;">31</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Ødegaard</strong></td>
@@ -430,9 +624,9 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">2.40</td>
 <td style="text-align: center;">2.48</td>
-<td style="text-align: center;">212.0</td>
-<td style="text-align: center;">349.1</td>
-<td style="text-align: center;">15</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">29</td>
+<td style="text-align: center;">7</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Calafiori</strong></td>
@@ -441,9 +635,9 @@
 <td style="text-align: center;"><strong>2</strong></td>
 <td style="text-align: center;">1.22</td>
 <td style="text-align: center;">1.01</td>
-<td style="text-align: center;">132.0</td>
-<td style="text-align: center;">102.5</td>
-<td style="text-align: center;">42</td>
+<td style="text-align: center;">13</td>
+<td style="text-align: center;">26</td>
+<td style="text-align: center;">29</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Havertz</strong></td>
@@ -452,9 +646,9 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">2.78</td>
 <td style="text-align: center;">0.45</td>
-<td style="text-align: center;">241.0</td>
-<td style="text-align: center;">88.5</td>
-<td style="text-align: center;">15</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">13</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Saka</strong></td>
@@ -463,9 +657,9 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">3.63</td>
 <td style="text-align: center;">1.20</td>
-<td style="text-align: center;">266.0</td>
-<td style="text-align: center;">181.1</td>
+<td style="text-align: center;">11</td>
 <td style="text-align: center;">23</td>
+<td style="text-align: center;">12</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>White</strong></td>
@@ -474,9 +668,9 @@
 <td style="text-align: center;"><strong>3</strong></td>
 <td style="text-align: center;">0.18</td>
 <td style="text-align: center;">0.83</td>
-<td style="text-align: center;">43.0</td>
-<td style="text-align: center;">111.7</td>
-<td style="text-align: center;">28</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">19</td>
+<td style="text-align: center;">18</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Tzolis</strong></td>
@@ -485,9 +679,9 @@
 <td style="text-align: center;"><strong>2</strong></td>
 <td style="text-align: center;">0.44</td>
 <td style="text-align: center;">0.90</td>
-<td style="text-align: center;">128.0</td>
-<td style="text-align: center;">144.0</td>
-<td style="text-align: center;">13</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">17</td>
+<td style="text-align: center;">8</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Madueke</strong></td>
@@ -496,9 +690,9 @@
 <td style="text-align: center;"><strong>1</strong></td>
 <td style="text-align: center;">0.90</td>
 <td style="text-align: center;">1.54</td>
-<td style="text-align: center;">132.0</td>
-<td style="text-align: center;">237.2</td>
-<td style="text-align: center;">7</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">17</td>
+<td style="text-align: center;">4</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Bruno G.</strong></td>
@@ -507,9 +701,9 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">0.36</td>
 <td style="text-align: center;">0.37</td>
-<td style="text-align: center;">47.0</td>
-<td style="text-align: center;">67.6</td>
-<td style="text-align: center;">19</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">25</td>
+<td style="text-align: center;">10</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Gabriel</strong></td>
@@ -518,9 +712,9 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">1.47</td>
 <td style="text-align: center;">0.25</td>
-<td style="text-align: center;">169.0</td>
-<td style="text-align: center;">47.0</td>
-<td style="text-align: center;">91</td>
+<td style="text-align: center;">14</td>
+<td style="text-align: center;">30</td>
+<td style="text-align: center;">77</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Konsa</strong></td>
@@ -529,9 +723,9 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">0.64</td>
 <td style="text-align: center;">0.04</td>
-<td style="text-align: center;">67.0</td>
-<td style="text-align: center;">19.1</td>
-<td style="text-align: center;">66</td>
+<td style="text-align: center;">16</td>
+<td style="text-align: center;">32</td>
+<td style="text-align: center;">50</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Gyökeres</strong></td>
@@ -540,9 +734,9 @@
 <td style="text-align: center;"><strong>1</strong></td>
 <td style="text-align: center;">0.11</td>
 <td style="text-align: center;">0.49</td>
-<td style="text-align: center;">35.0</td>
-<td style="text-align: center;">85.5</td>
 <td style="text-align: center;">1</td>
+<td style="text-align: center;">13</td>
+<td style="text-align: center;">0</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Raya</strong></td>
@@ -551,9 +745,9 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">0.00</td>
 <td style="text-align: center;">0.01</td>
-<td style="text-align: center;">0.0</td>
-<td style="text-align: center;">0.2</td>
-<td style="text-align: center;">15</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">117</td>
+<td style="text-align: center;">14</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Lewis-Skelly</strong></td>
@@ -562,9 +756,9 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">0.22</td>
 <td style="text-align: center;">0.64</td>
-<td style="text-align: center;">31.0</td>
-<td style="text-align: center;">66.0</td>
-<td style="text-align: center;">15</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">13</td>
+<td style="text-align: center;">9</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>J.Timber</strong></td>
@@ -573,9 +767,9 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">0.02</td>
 <td style="text-align: center;">0.57</td>
-<td style="text-align: center;">24.0</td>
-<td style="text-align: center;">89.0</td>
-<td style="text-align: center;">18</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">22</td>
+<td style="text-align: center;">13</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Eze</strong></td>
@@ -584,8 +778,8 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">0.19</td>
 <td style="text-align: center;">0.31</td>
-<td style="text-align: center;">44.0</td>
-<td style="text-align: center;">25.7</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">10</td>
 <td style="text-align: center;">1</td>
 </tr>
 <tr>
@@ -595,9 +789,9 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">0.82</td>
 <td style="text-align: center;">0.36</td>
-<td style="text-align: center;">73.0</td>
-<td style="text-align: center;">17.7</td>
-<td style="text-align: center;">6</td>
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">17</td>
+<td style="text-align: center;">3</td>
 </tr>
 <tr>
 <td style="text-align: left;"><strong>Mosquera</strong></td>
@@ -606,52 +800,52 @@
 <td style="text-align: center;"><strong>0</strong></td>
 <td style="text-align: center;">0.00</td>
 <td style="text-align: center;">0.01</td>
-<td style="text-align: center;">0.0</td>
-<td style="text-align: center;">2.0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">3</td>
 <td style="text-align: center;">10</td>
 </tr>
 </tbody>
 </table>
-<h3>👑 プレミアリーグ個人ランキング TOP 5</h3>
+<h3>👑 プレミアリーグ全体 個人ランキング TOP 5</h3>
 <table>
 <thead>
 <tr>
 <th style="text-align: center;">順位</th>
-<th style="text-align: left;">⚽ 得点王争い</th>
-<th style="text-align: left;">🎯 アシスト王争い</th>
-<th style="text-align: left;">🔥 ゴール期待値(xG)上位</th>
+<th style="text-align: left;">⚽ 得点ランキング</th>
+<th style="text-align: left;">🎯 アシストランキング</th>
+<th style="text-align: left;">🛡️ タックル奪取王</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td style="text-align: center;">1位</td>
-<td style="text-align: left;"><strong>Haaland</strong> (MCI) - <strong>9G</strong></td>
-<td style="text-align: left;"><strong>Groß</strong> (BHA) - <strong>6A</strong></td>
-<td style="text-align: left;"><strong>Barry</strong> (EVE) - <strong>7.29</strong></td>
+<td style="text-align: left;"><strong>Haaland</strong> (MCI) <strong>9G</strong></td>
+<td style="text-align: left;"><strong>Groß</strong> (BHA) <strong>6A</strong></td>
+<td style="text-align: left;"><strong>Schlager</strong> (NFO) <strong>32回</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">2位</td>
-<td style="text-align: left;"><strong>Isak</strong> (LIV) - <strong>7G</strong></td>
-<td style="text-align: left;"><strong>Wirtz</strong> (LIV) - <strong>5A</strong></td>
-<td style="text-align: left;"><strong>Haaland</strong> (MCI) - <strong>7.06</strong></td>
+<td style="text-align: left;"><strong>Isak</strong> (LIV) <strong>7G</strong></td>
+<td style="text-align: left;"><strong>Wirtz</strong> (LIV) <strong>5A</strong></td>
+<td style="text-align: left;"><strong>Khalaili</strong> (CRY) <strong>29回</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">3位</td>
-<td style="text-align: left;"><strong>N.Jackson</strong> (AVL) - <strong>6G</strong></td>
-<td style="text-align: left;"><strong>Rice</strong> (ARS) - <strong>5A</strong></td>
-<td style="text-align: left;"><strong>Isak</strong> (LIV) - <strong>4.88</strong></td>
+<td style="text-align: left;"><strong>N.Jackson</strong> (AVL) <strong>6G</strong></td>
+<td style="text-align: left;"><strong>Rice</strong> (ARS) <strong>5A</strong></td>
+<td style="text-align: left;"><strong>M.Sangaré</strong> (BRE) <strong>28回</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">4位</td>
-<td style="text-align: left;"><strong>Barry</strong> (EVE) - <strong>6G</strong></td>
-<td style="text-align: left;"><strong>Gvardiol</strong> (MCI) - <strong>4A</strong></td>
-<td style="text-align: left;"><strong>Mbeumo</strong> (MUN) - <strong>4.63</strong></td>
+<td style="text-align: left;"><strong>Barry</strong> (EVE) <strong>6G</strong></td>
+<td style="text-align: left;"><strong>Gvardiol</strong> (MCI) <strong>4A</strong></td>
+<td style="text-align: left;"><strong>Jacquet</strong> (LIV) <strong>28回</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">5位</td>
-<td style="text-align: left;"><strong>João Pedro</strong> (CHE) - <strong>5G</strong></td>
-<td style="text-align: left;"><strong>Cunha</strong> (MUN) - <strong>4A</strong></td>
-<td style="text-align: left;"><strong>Evanilson</strong> (BOU) - <strong>4.45</strong></td>
+<td style="text-align: left;"><strong>João Pedro</strong> (CHE) <strong>5G</strong></td>
+<td style="text-align: left;"><strong>Cunha</strong> (MUN) <strong>4A</strong></td>
+<td style="text-align: left;"><strong>Kamara</strong> (AVL) <strong>28回</strong></td>
 </tr>
 </tbody>
 </table>
@@ -665,6 +859,8 @@
 <th style="text-align: center;">勝</th>
 <th style="text-align: center;">分</th>
 <th style="text-align: center;">負</th>
+<th style="text-align: center;">得</th>
+<th style="text-align: center;">失</th>
 <th style="text-align: center;">得失</th>
 <th style="text-align: center;">勝点</th>
 </tr>
@@ -677,26 +873,32 @@
 <td style="text-align: center;">9</td>
 <td style="text-align: center;">0</td>
 <td style="text-align: center;">1</td>
+<td style="text-align: center;">15</td>
+<td style="text-align: center;">5</td>
 <td style="text-align: center;">+10</td>
 <td style="text-align: center;"><strong>27</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">2</td>
-<td style="text-align: left;">Brighton &amp; Hove Albion</td>
+<td style="text-align: left;">Brighton</td>
 <td style="text-align: center;">10</td>
 <td style="text-align: center;">7</td>
 <td style="text-align: center;">1</td>
 <td style="text-align: center;">2</td>
+<td style="text-align: center;">26</td>
+<td style="text-align: center;">7</td>
 <td style="text-align: center;">+19</td>
 <td style="text-align: center;"><strong>22</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">3</td>
-<td style="text-align: left;">Manchester City</td>
+<td style="text-align: left;">Man City</td>
 <td style="text-align: center;">10</td>
 <td style="text-align: center;">7</td>
 <td style="text-align: center;">0</td>
 <td style="text-align: center;">3</td>
+<td style="text-align: center;">21</td>
+<td style="text-align: center;">13</td>
 <td style="text-align: center;">+8</td>
 <td style="text-align: center;"><strong>21</strong></td>
 </tr>
@@ -707,6 +909,8 @@
 <td style="text-align: center;">5</td>
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">2</td>
+<td style="text-align: center;">14</td>
+<td style="text-align: center;">10</td>
 <td style="text-align: center;">+4</td>
 <td style="text-align: center;"><strong>18</strong></td>
 </tr>
@@ -717,6 +921,8 @@
 <td style="text-align: center;">5</td>
 <td style="text-align: center;">1</td>
 <td style="text-align: center;">4</td>
+<td style="text-align: center;">19</td>
+<td style="text-align: center;">16</td>
 <td style="text-align: center;">+3</td>
 <td style="text-align: center;"><strong>16</strong></td>
 </tr>
@@ -727,16 +933,20 @@
 <td style="text-align: center;">4</td>
 <td style="text-align: center;">4</td>
 <td style="text-align: center;">2</td>
+<td style="text-align: center;">12</td>
+<td style="text-align: center;">10</td>
 <td style="text-align: center;">+2</td>
 <td style="text-align: center;"><strong>16</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">7</td>
-<td style="text-align: left;">AFC Bournemouth</td>
+<td style="text-align: left;">Bournemouth</td>
 <td style="text-align: center;">10</td>
 <td style="text-align: center;">4</td>
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">3</td>
+<td style="text-align: center;">16</td>
+<td style="text-align: center;">14</td>
 <td style="text-align: center;">+2</td>
 <td style="text-align: center;"><strong>15</strong></td>
 </tr>
@@ -747,16 +957,20 @@
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">5</td>
 <td style="text-align: center;">2</td>
+<td style="text-align: center;">16</td>
+<td style="text-align: center;">11</td>
 <td style="text-align: center;">+5</td>
 <td style="text-align: center;"><strong>14</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">9</td>
-<td style="text-align: left;">Leeds United</td>
+<td style="text-align: left;">Leeds</td>
 <td style="text-align: center;">10</td>
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">5</td>
 <td style="text-align: center;">2</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">8</td>
 <td style="text-align: center;">+2</td>
 <td style="text-align: center;"><strong>14</strong></td>
 </tr>
@@ -767,26 +981,32 @@
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">4</td>
 <td style="text-align: center;">3</td>
+<td style="text-align: center;">14</td>
+<td style="text-align: center;">17</td>
 <td style="text-align: center;">-3</td>
 <td style="text-align: center;"><strong>13</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">11</td>
-<td style="text-align: left;">Tottenham Hotspur</td>
+<td style="text-align: left;">Spurs</td>
 <td style="text-align: center;">10</td>
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">4</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">11</td>
 <td style="text-align: center;">-1</td>
 <td style="text-align: center;"><strong>12</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">12</td>
-<td style="text-align: left;">Newcastle United</td>
+<td style="text-align: left;">Newcastle</td>
 <td style="text-align: center;">10</td>
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">4</td>
+<td style="text-align: center;">13</td>
+<td style="text-align: center;">16</td>
 <td style="text-align: center;">-3</td>
 <td style="text-align: center;"><strong>12</strong></td>
 </tr>
@@ -797,6 +1017,8 @@
 <td style="text-align: center;">2</td>
 <td style="text-align: center;">5</td>
 <td style="text-align: center;">3</td>
+<td style="text-align: center;">11</td>
+<td style="text-align: center;">11</td>
 <td style="text-align: center;">0</td>
 <td style="text-align: center;"><strong>11</strong></td>
 </tr>
@@ -807,6 +1029,8 @@
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">2</td>
 <td style="text-align: center;">5</td>
+<td style="text-align: center;">15</td>
+<td style="text-align: center;">20</td>
 <td style="text-align: center;">-5</td>
 <td style="text-align: center;"><strong>11</strong></td>
 </tr>
@@ -817,16 +1041,20 @@
 <td style="text-align: center;">2</td>
 <td style="text-align: center;">4</td>
 <td style="text-align: center;">4</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">12</td>
 <td style="text-align: center;">-2</td>
 <td style="text-align: center;"><strong>10</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">16</td>
-<td style="text-align: left;">Nottingham Forest</td>
+<td style="text-align: left;">Nott'm Forest</td>
 <td style="text-align: center;">10</td>
 <td style="text-align: center;">2</td>
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">5</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">13</td>
 <td style="text-align: center;">-4</td>
 <td style="text-align: center;"><strong>9</strong></td>
 </tr>
@@ -837,16 +1065,20 @@
 <td style="text-align: center;">3</td>
 <td style="text-align: center;">0</td>
 <td style="text-align: center;">7</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">19</td>
 <td style="text-align: center;">-9</td>
 <td style="text-align: center;"><strong>9</strong></td>
 </tr>
 <tr>
 <td style="text-align: center;">18</td>
-<td style="text-align: left;">Manchester United</td>
+<td style="text-align: left;">Man Utd</td>
 <td style="text-align: center;">10</td>
 <td style="text-align: center;">1</td>
 <td style="text-align: center;">5</td>
 <td style="text-align: center;">4</td>
+<td style="text-align: center;">14</td>
+<td style="text-align: center;">19</td>
 <td style="text-align: center;">-5</td>
 <td style="text-align: center;"><strong>8</strong></td>
 </tr>
@@ -857,6 +1089,8 @@
 <td style="text-align: center;">2</td>
 <td style="text-align: center;">2</td>
 <td style="text-align: center;">6</td>
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">17</td>
 <td style="text-align: center;">-9</td>
 <td style="text-align: center;"><strong>8</strong></td>
 </tr>
@@ -867,11 +1101,13 @@
 <td style="text-align: center;">2</td>
 <td style="text-align: center;">1</td>
 <td style="text-align: center;">7</td>
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">24</td>
 <td style="text-align: center;">-14</td>
 <td style="text-align: center;"><strong>7</strong></td>
 </tr>
 </tbody>
-</table></div>
+</table></section>
   </div>
 <script>
   const tabIds = ['news', 'stats', 'table'];
@@ -881,8 +1117,10 @@
   function switchTab(index) {
     currentTab = index;
     tabIds.forEach((id, i) => {
-      document.getElementById(id).classList.toggle('active', i === index);
-      document.getElementById(btnIds[i]).classList.toggle('active', i === index);
+      const el = document.getElementById(id);
+      const btn = document.getElementById(btnIds[i]);
+      if (el) el.classList.toggle('active', i === index);
+      if (btn) btn.classList.toggle('active', i === index);
     });
     window.scrollTo(0, 0);
   }
