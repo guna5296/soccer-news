@@ -4,6 +4,7 @@ import json
 import requests
 import cloudscraper
 import feedparser
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import pytz
 import markdown
@@ -11,17 +12,16 @@ from google import genai
 from google.genai import types
 from bs4 import BeautifulSoup
 
+print("1. 高速版スクリプト開始...", flush=True)
+
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("GEMINI_API_KEY is missing in GitHub Secrets.")
 
+# 1回の通信上限を45秒に設定
 client = genai.Client(
     api_key=api_key,
-    http_options=types.HttpOptions(timeout=90000)
-)
-
-scraper = cloudscraper.create_scraper(
-    browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
+    http_options=types.HttpOptions(timeout=45000)
 )
 
 HEADERS = {
@@ -38,7 +38,6 @@ def build_url(*parts):
     raw = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', raw)
     return raw.replace("[", "").replace("]", "")
 
-# ドメイン分割定義
 P_HTTPS = "https" + "://"
 D_GUARDIAN = "www.theguardian" + ".com"
 D_BBC = "feeds.bbci" + ".co.uk"
@@ -50,14 +49,12 @@ D_ESPN = "site.api.espn" + ".com"
 D_FOTMOB = "www.fotmob" + ".com"
 D_FPL = "fantasy.premierleague" + ".com"
 
-# 女子チームの記事のみを除外（U21/U18は残す）
 WOMEN_EXCLUDE_PATTERNS = [
     r"\barsenal women\b", r"\bwsl\b", r"\bwomen's super league\b",
     r"\blionesses\b", r"\barsenal ladies\b", r"\brenee slegers\b",
     r"\bjonas eidevall\b", r"\bwomen's champions league\b", r"\buwcl\b"
 ]
 
-# ビッグ6判定用キーワード（他14クラブと1:1に均等化するため使用）
 BIG6_PATTERNS = [
     r"\bmanchester city\b", r"\bman city\b", r"\bguardiola\b", r"\bhaaland\b",
     r"\bliverpool\b", r"\bslot\b", r"\bsalah\b", r"\banfield\b",
@@ -81,138 +78,134 @@ def is_big6_article(title, summary):
     return False
 
 # --------------------------------------------------
-# 1. Geminiモデル自動検出 & 2分割生成
+# 1. Geminiモデルの確定（1回だけテストして有効モデルをロック）
 # --------------------------------------------------
-def get_best_model_list():
-    candidates = ["gemini-3.8-flash", "gemini-3.0-flash", "gemini-3-flash"]
+def detect_working_model():
+    candidates = []
     try:
         for m in client.models.list():
             name = m.name.replace("models/", "")
-            if "flash" in name and not any(x in name for x in ["1.5", "2.0", "2.5", "vision", "audio", "tts", "8b"]):
-                if name not in candidates:
-                    candidates.insert(0, name)
-            elif "flash" in name and not any(x in name for x in ["1.5", "vision", "audio", "tts"]):
-                if name not in candidates:
-                    candidates.append(name)
+            if "flash" in name and not any(x in name for x in ["1.5", "2.0", "2.5", "vision", "audio", "tts", "8b", "lite"]):
+                candidates.append(name)
     except Exception:
         pass
-    return candidates
+    for fallback in ["gemini-3.8-flash", "gemini-3.0-flash", "gemini-3-flash", "gemini-2.5-flash"]:
+        if fallback not in candidates:
+            candidates.append(fallback)
 
-def call_gemini(prompt, candidates):
-    last_err = ""
     for model_name in candidates:
         try:
             res = client.models.generate_content(
                 model=model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(max_output_tokens=8192)
+                contents="OK",
+                config=types.GenerateContentConfig(max_output_tokens=5)
             )
             if res and res.text:
-                cleaned = res.text.replace("```html", "").replace("```", "").strip()
-                cleaned = cleaned.replace('target="_blank"', 'target="_blank" rel="noopener noreferrer"')
-                return cleaned
-        except Exception as e:
-            last_err = str(e)
+                print(f"有効モデル確定: {model_name}", flush=True)
+                return model_name
+        except Exception:
             continue
-    return f"<p>要約生成エラー: {last_err}</p>"
+    return candidates[0]
+
+def call_gemini_single(prompt, model_name):
+    try:
+        res = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(max_output_tokens=8192)
+        )
+        if res and res.text:
+            cleaned = res.text.replace("```html", "").replace("```", "").strip()
+            return cleaned.replace('target="_blank"', 'target="_blank" rel="noopener noreferrer"')
+    except Exception as e:
+        return f"<p>要約生成エラー ({model_name}): {e}</p>"
+    return "<p>要約結果が空でした</p>"
+
+# --------------------------------------------------
+# 2. RSSフィードの並列高速取得（全サイト合計8秒以内で完了）
+# --------------------------------------------------
+def fetch_single_feed(name, url, limit):
+    results = []
+    try:
+        # 接続4秒・読込6秒の厳格なタイムアウト
+        resp = requests.get(url, headers=HEADERS, timeout=(4, 6))
+        f = feedparser.parse(resp.content)
+        for e in f.entries[:limit]:
+            title = e.get("title", "").strip()
+            if not title:
+                continue
+            raw_html = e.get("summary", "") or (e.get("content", [{}])[0].get("value", "") if e.get("content") else "")
+            clean_text = BeautifulSoup(raw_html, "html.parser").get_text(separator=" ", strip=True)
+            if not is_valid_article(title, clean_text):
+                continue
+            results.append((name, title, clean_text[:650], e.get("link", "")))
+    except Exception as e:
+        print(f"RSSスキップ ({name}): {e}", flush=True)
+    return results
 
 def get_all_uk_news():
-    seen_titles = set()
-
-    # --- A. アーセナル（トップ＋U21）の収集 ---
+    print("2. RSSフィードを並列取得中...", flush=True)
     arsenal_feeds = [
         ("Arsenal (Arseblog)", build_url(P_HTTPS, D_ARSEBLOG, "/feed/"), 7),
         ("Arsenal (Football.London)", build_url(P_HTTPS, D_FLONDON, "/arsenal-fc/?service=rss"), 6),
         ("Arsenal (Guardian)", build_url(P_HTTPS, D_GUARDIAN, "/football/arsenal/rss"), 5),
         ("Arsenal (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/teams/arsenal/rss.xml"), 5),
         ("Arsenal (JustArsenal)", build_url(P_HTTPS, D_JUSTARS, "/feed"), 5),
-        ("Arsenal U21/Youth (Jeorge Bird)", build_url(P_HTTPS, D_YOUTH, "/feed/"), 8)
+        ("Arsenal U21/Youth (Jeorge Bird)", build_url(P_HTTPS, D_YOUTH, "/feed/"), 7)
     ]
 
-    ars_data = []
-    for name, url, limit in arsenal_feeds:
-        try:
-            resp = scraper.get(url, timeout=10)
-            f = feedparser.parse(resp.content)
-            count = 0
-            for e in f.entries:
-                if count >= limit:
-                    break
-                title = e.get("title", "").strip()
-                if not title or title in seen_titles:
-                    continue
-                raw_html = e.get("summary", "") or (e.get("content", [{}])[0].get("value", "") if e.get("content") else "")
-                clean_text = BeautifulSoup(raw_html, "html.parser").get_text(separator=" ", strip=True)
-                if not is_valid_article(title, clean_text):
-                    continue
-                seen_titles.add(title)
-                ars_data.append(f"[{name}]\nTitle: {title}\nContent: {clean_text[:950]}\nLink: {e.get('link', '')}\n")
-                count += 1
-        except Exception as e:
-            print(f"RSSスキップ ({name}): {e}", flush=True)
-
-    # --- B. PL全般の収集（ビッグ6と他14クラブを1:1で均等確保） ---
     pl_feeds = [
-        ("PL (Guardian)", build_url(P_HTTPS, D_GUARDIAN, "/football/premierleague/rss")),
-        ("PL (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/premier-league/rss.xml")),
-        ("Football (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/rss.xml")),
-        ("Football (Guardian)", build_url(P_HTTPS, D_GUARDIAN, "/football/rss"))
+        ("PL (Guardian)", build_url(P_HTTPS, D_GUARDIAN, "/football/premierleague/rss"), 25),
+        ("PL (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/premier-league/rss.xml"), 25),
+        ("Football (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/rss.xml"), 20),
+        ("移籍ゴシップ (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/gossip/rss.xml"), 2)
     ]
 
+    seen_titles = set()
+    ars_data = []
     big6_bucket = []
     other14_bucket = []
     gossip_bucket = []
 
-    for name, url in pl_feeds:
-        try:
-            resp = scraper.get(url, timeout=10)
-            f = feedparser.parse(resp.content)
-            for e in f.entries:
-                title = e.get("title", "").strip()
-                if not title or title in seen_titles:
-                    continue
-                raw_html = e.get("summary", "") or (e.get("content", [{}])[0].get("value", "") if e.get("content") else "")
-                clean_text = BeautifulSoup(raw_html, "html.parser").get_text(separator=" ", strip=True)
-                if not is_valid_article(title, clean_text):
-                    continue
-                # アーセナル単体記事はすでにAで取得済みなのでスキップ
-                if "arsenal" in title.lower() and not is_big6_article(title, clean_text):
-                    continue
+    # 全10フィードを並列で一斉取得
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        future_map = {}
+        for name, url, limit in arsenal_feeds:
+            future_map[executor.submit(fetch_single_feed, name, url, limit)] = ("ARS", name)
+        for name, url, limit in pl_feeds:
+            future_map[executor.submit(fetch_single_feed, name, url, limit)] = ("PL", name)
 
+        for fut in as_completed(future_map):
+            group, fname = future_map[fut]
+            items = fut.result()
+            for name, title, text, link in items:
+                if title in seen_titles:
+                    continue
                 seen_titles.add(title)
-                entry_str = f"[{name}]\nTitle: {title}\nContent: {clean_text[:950]}\nLink: {e.get('link', '')}\n"
+                entry_str = f"[{name}]\nTitle: {title}\nContent: {text}\nLink: {link}\n"
 
-                if is_big6_article(title, clean_text):
-                    if len(big6_bucket) < 15:
-                        big6_bucket.append(entry_str)
+                if group == "ARS":
+                    ars_data.append(entry_str)
+                elif "ゴシップ" in name:
+                    gossip_bucket.append(entry_str)
                 else:
-                    if len(other14_bucket) < 16:
-                        other14_bucket.append(entry_str)
-        except Exception as e:
-            print(f"PL RSSスキップ ({name}): {e}", flush=True)
+                    if "arsenal" in title.lower() and not is_big6_article(title, text):
+                        continue
+                    if is_big6_article(title, text):
+                        if len(big6_bucket) < 12:
+                            big6_bucket.append(entry_str)
+                    else:
+                        if len(other14_bucket) < 12:
+                            other14_bucket.append(entry_str)
 
-    # 移籍ゴシップ専用枠
-    try:
-        g_url = build_url(P_HTTPS, D_BBC, "/sport/football/gossip/rss.xml")
-        resp = scraper.get(g_url, timeout=10)
-        f = feedparser.parse(resp.content)
-        for e in f.entries[:2]:
-            raw_html = e.get("summary", "") or (e.get("content", [{}])[0].get("value", "") if e.get("content") else "")
-            clean_text = BeautifulSoup(raw_html, "html.parser").get_text(separator=" ", strip=True)
-            gossip_bucket.append(f"[移籍ゴシップ (BBC)]\nTitle: {e.get('title', '')}\nContent: {clean_text[:1500]}\nLink: {e.get('link', '')}\n")
-    except Exception:
-        pass
+    print(f"RSS取得完了: Arsenal={len(ars_data)}件, BIG6={len(big6_bucket)}件, 他PL={len(other14_bucket)}件", flush=True)
 
-    candidates = get_best_model_list()
+    working_model = detect_working_model()
 
-    # --- 翻訳バッチ1：アーセナル（トップ 10〜12件 ＋ U21/アカデミー 4〜5件 ＝ 他よりちょい多め） ---
     prompt_ars = f"""
 あなたはアーセナル専門の熟練ジャーナリストです。
 以下の現地英語メディアの最新記事から、**男子トップチーム（10〜12件）**および**U21・U18・アカデミー・若手ローン選手（4〜5件）**の記事を抽出し、指定のHTML構造のみで濃密に日本語要約してください。
 ※女子チーム（WSL）の話題は除外してください。コードブロック（```html等）は絶対につけないでください。
-
-【出力ルール】
-1記事あたり、外部サイトを開かなくても全容が把握できるよう **具体的な発言、戦術・起用背景、スタッツや怪我の状況、今後の見通しを4個の詳しい箇条書き（合計250〜350文字程度）** で濃く記述してください。
 
 <h2>🔴 アーセナル・トップチーム最新ニュース（10〜12件）</h2>
 <details>
@@ -229,7 +222,6 @@ def get_all_uk_news():
 </details>
 
 <h2>🌱 アーセナル U21・U18・アカデミー＆ローン選手動向（4〜5件）</h2>
-※「Arsenal U21/Youth (Jeorge Bird)」などの情報から、PL2（U21）やU18の試合結果、得点者、先発メンバー、有望株（プロ契約・トップ昇格候補・ローン組）の最新動向を抽出し、以下の形式で詳しく出力してください：
 <details>
   <summary>🌱 [U21/アカデミー] [若手選手名や試合結果がわかる具体的な日本語タイトル]</summary>
   <div class="detail-box">
@@ -246,7 +238,6 @@ def get_all_uk_news():
 {chr(10).join(ars_data)}
 """
 
-    # --- 翻訳バッチ2：ビッグ6（10〜11件）と 他プレミア14クラブ（10〜11件）を完全に半々（1:1）で出力 ---
     pl_combined_input = (
         "=== 【ビッグ6候補記事】 ===\n" + "\n".join(big6_bucket) +
         "\n=== 【その他プレミア14クラブ候補記事】 ===\n" + "\n".join(other14_bucket) +
@@ -255,14 +246,10 @@ def get_all_uk_news():
 
     prompt_pl = f"""
 あなたはプレミアリーグ専門の熟練ジャーナリストです。
-以下の現地英語メディアの記事群から、**①ビッグ6（アーセナル以外の5クラブ：10〜11件）** と **②その他プレミアリーグ14クラブ（10〜11件）** が **完全に半々（1:1の同数・同ボリューム）** になるように厳選し、さらに **③移籍の噂・ゴシップ（6〜8件）** を加えて、指定のHTML構造のみで濃密に日本語要約してください。
-※ビッグ6ばかりを優遇せず、必ずその他14クラブも同じ記事数（10〜11件）しっかり出力してください。
-※女子サッカーや他国リーグのみの記事は除外してください。コードブロック（```html等）は絶対につけないでください。
+以下の現地英語メディアの記事群から、**①ビッグ6（アーセナル以外の5クラブ：8〜10件）** と **②その他プレミアリーグ14クラブ（8〜10件）** が **完全に半々（1:1の同数）** になるように厳選し、さらに **③移籍の噂・ゴシップ（5〜7件）** を加えて、指定のHTML構造のみで濃密に日本語要約してください。
+※コードブロック（```html等）は絶対につけないでください。
 
-【出力ルール】
-1記事あたり **具体的な発言、戦術やクラブ事情、数字や今後の見通しを含めて、4個の詳しい箇条書き（合計250〜350文字程度）** で濃く記述してください。
-
-<h2>⚔️ ビッグ6動向（10〜11件 ※シティ/リヴァプール/チェルシー/Utd/スパーズ）</h2>
+<h2>⚔️ ビッグ6動向（8〜10件 ※シティ/リヴァプール/チェルシー/Utd/スパーズ）</h2>
 <details>
   <summary>⚔️ 【クラブ名】[具体的でわかりやすい日本語タイトル]</summary>
   <div class="detail-box">
@@ -276,24 +263,31 @@ def get_all_uk_news():
   </div>
 </details>
 
-<h2>🦁 その他プレミア14クラブ動向（10〜11件 ※ビッグ6と同数・半々）</h2>
-※ニューカッスル、アストン・ヴィラ、ブライトン、ボーンマス、フラム、ブレントフォード、ウェストハム、パレス、エヴァートン、フォレスト、ウルヴス等の記事をビッグ6と同じ件数（10〜11件）抽出し、<details><summary>🦁 【クラブ名】[具体的な日本語タイトル]</summary>... の形式で4つの濃い箇条書きで出力してください。
+<h2>🦁 その他プレミア14クラブ動向（8〜10件 ※ビッグ6と同数・半々）</h2>
+※ニューカッスル、アストン・ヴィラ、ブライトン、ボーンマス、フラム、ブレントフォード、ウェストハム、パレス、エヴァートン、フォレスト等の記事をビッグ6と同数抽出し、<details><summary>🦁 【クラブ名】[具体的な日本語タイトル]</summary>... の形式で4つの濃い箇条書きで出力してください。
 
-<h2>🔄 移籍の噂・ゴシップ (BBC Gossip / 現地紙まとめ：6〜8件)</h2>
-※アーセナル関連の噂を最優先しつつ、プレミア各クラブの注目ゴシップを <details><summary>🔄 【クラブ名/選手名】[移籍の噂の見出し（情報元の新聞名）]</summary>... の形式で、移籍金や背景を含めて詳しく出力してください。
+<h2>🔄 移籍の噂・ゴシップ (BBC Gossip / 現地紙まとめ：5〜7件)</h2>
+※アーセナル関連の噂を最優先しつつ、プレミア各クラブの注目ゴシップを <details><summary>🔄 【クラブ名/選手名】[移籍の噂の見出し（情報元の新聞名）]</summary>... の形式で詳しく出力してください。
 
 【入力データ】:
 {pl_combined_input}
 """
 
-    part1_html = call_gemini(prompt_ars, candidates) if ars_data else "<p>アーセナル記事取得なし</p>"
-    part2_html = call_gemini(prompt_pl, candidates) if (big6_bucket or other14_bucket) else "<p>PL記事取得なし</p>"
+    print("3. Geminiで2つのバッチを同時並列翻訳中...", flush=True)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        f1 = executor.submit(call_gemini_single, prompt_ars, working_model)
+        f2 = executor.submit(call_gemini_single, prompt_pl, working_model)
+        part1_html = f1.result()
+        part2_html = f2.result()
+
+    print("4. Gemini翻訳完了！", flush=True)
     return part1_html + "\n" + part2_html
 
 # --------------------------------------------------
-# 2. 次回日程(JST) ＆ 前回試合スタッツ
+# 3. 次回日程(JST) ＆ 前回試合スタッツ
 # --------------------------------------------------
 def get_match_and_stats():
+    print("5. 試合日程＆スタッツ取得中...", flush=True)
     jst = pytz.timezone("Asia/Tokyo")
     now_utc = datetime.now(timezone.utc)
     next_html = "<div class='next-box'>次回試合予定データ取得中</div>"
@@ -303,12 +297,12 @@ def get_match_and_stats():
     fpl_last_fix = None
     try:
         boot_url = build_url(P_HTTPS, D_FPL, "/api/bootstrap-static/")
-        boot = requests.get(boot_url, headers=HEADERS, timeout=10).json()
+        boot = requests.get(boot_url, headers=HEADERS, timeout=6).json()
         fpl_teams = {t["id"]: t["name"] for t in boot.get("teams", [])}
         ars_id = next((t["id"] for t in boot.get("teams", []) if t["name"] == "Arsenal"), 1)
 
         fix_url = build_url(P_HTTPS, D_FPL, "/api/fixtures/")
-        fixes = requests.get(fix_url, headers=HEADERS, timeout=10).json()
+        fixes = requests.get(fix_url, headers=HEADERS, timeout=6).json()
         ars_fixes = [f for f in fixes if f.get("team_h") == ars_id or f.get("team_a") == ars_id]
         
         fpl_up = [f for f in ars_fixes if not f.get("finished") and f.get("kickoff_time")]
@@ -330,31 +324,20 @@ def get_match_and_stats():
     except Exception as e:
         print(f"FPL fix err: {e}", flush=True)
 
+    # FotMobの高速試行（最大5秒でタイムアウトさせて絶対にハングさせない）
     fotmob_lines = []
     try:
+        scraper = cloudscraper.create_scraper()
         fm_team_url = build_url(P_HTTPS, D_FOTMOB, f"/api/teams?id={ARSENAL_FOTMOB_ID}&ccode3=JPN")
-        fm_res = scraper.get(fm_team_url, timeout=10)
+        fm_res = scraper.get(fm_team_url, timeout=(3, 5))
         if fm_res.status_code == 200:
             fm_data = fm_res.json()
             all_fix = fm_data.get("fixtures", {}).get("allFixtures", {}).get("fixtures", [])
-            
-            fm_up = [m for m in all_fix if not m.get("status", {}).get("started")]
-            if fm_up:
-                nxt_fm = fm_up[0]
-                utc_dt = datetime.fromisoformat(nxt_fm["status"]["utcTime"].replace("Z", "+00:00"))
-                jst_dt = utc_dt.astimezone(jst)
-                next_html = (
-                    f"<div class='next-box'>"
-                    f"<b>⏰ 次回公式戦: {nxt_fm['home']['name']} vs {nxt_fm['away']['name']}</b><br>"
-                    f"日本時間: <span style='color:#ffcc00;font-weight:bold;'>{jst_dt.strftime('%Y年%m月%d日(%a) %H:%M')}</span> キックオフ ({nxt_fm.get('tournament', {}).get('name', '')})"
-                    f"</div>"
-                )
-
             fm_fin = [m for m in all_fix if m.get("status", {}).get("finished")]
             if fm_fin:
                 last_match_id = fm_fin[-1]["id"]
                 det_url = build_url(P_HTTPS, D_FOTMOB, f"/api/matchDetails?matchId={last_match_id}&lang=ja")
-                det_res = scraper.get(det_url, timeout=10)
+                det_res = scraper.get(det_url, timeout=(3, 5))
                 if det_res.status_code == 200:
                     d_json = det_res.json()
                     h_team = d_json.get("general", {}).get("homeTeam", {}).get("name", "Home")
@@ -389,7 +372,7 @@ def get_match_and_stats():
                                     "a_duel_str": a_duel_str
                                 })
 
-                    if ars_players_parsed and len(ars_players_parsed) >= 3:
+                    if len(ars_players_parsed) >= 3:
                         top_rating = sorted(ars_players_parsed, key=lambda x: x["rating"], reverse=True)[:3]
                         top_g_duel = sorted(ars_players_parsed, key=lambda x: x["g_duel_num"], reverse=True)[:3]
                         fotmob_lines.append("#### 👑 この試合のアーセナル個人ランキング")
@@ -409,19 +392,6 @@ def get_match_and_stats():
                             fotmob_lines.append(f"| **{p['name']}** | {p['pos']} | {r_str} | {p['mins']}' | {ga} | {p['shots']} | {p['passes']} | {p['g_duel_str']} | {p['a_duel_str']} |")
                         fotmob_lines.append("")
 
-                    shots = d_json.get("content", {}).get("shotmap", {}).get("shots", [])
-                    if shots:
-                        fotmob_lines.append("#### 🎯 ゴール＆シュート詳細 (xG / xGOT)")
-                        fotmob_lines.append("| 分 | 選手 | 結果 | 部位 | 状況 | xG | xGOT |")
-                        fotmob_lines.append("| :--- | :--- | :--- | :--- | :--- | :---: | :---: |")
-                        for s in shots:
-                            is_g = (s.get("eventType") == "Goal")
-                            r_mark = "⚽ **GOAL**" if is_g else s.get("eventType", "")
-                            xg = f"{s.get('expectedGoals', 0):.2f}" if s.get("expectedGoals") else "-"
-                            xgot = f"{s.get('expectedGoalsOnTarget', 0):.2f}" if s.get("expectedGoalsOnTarget") else "-"
-                            fotmob_lines.append(f"| {s.get('min')}' | **{s.get('playerName')}** | {r_mark} | {s.get('shotType')} | {s.get('situation')} | {xg} | {xgot} |")
-                        fotmob_lines.append("")
-
                     stats_groups = d_json.get("content", {}).get("stats", {}).get("Periods", {}).get("All", {}).get("stats", [])
                     for group in stats_groups:
                         fotmob_lines.append(f"#### 📊 {group.get('title', 'スタッツ')}")
@@ -435,49 +405,27 @@ def get_match_and_stats():
                                 fotmob_lines.append(f"| {item.get('title', '')} | {vals[0]} | {vals[1]} |")
                         fotmob_lines.append("")
     except Exception as e:
-        print(f"FotMob取得スキップ: {e}", flush=True)
+        print(f"FotMobスキップ: {e}", flush=True)
 
     if fotmob_lines:
-        stats_md = markdown.markdown("\n".join(fotmob_lines), extensions=['tables'])
-        return next_html, stats_md
+        return next_html, markdown.markdown("\n".join(fotmob_lines), extensions=['tables'])
 
+    # FotMobがブロックされた場合のESPN高速取得
     espn_lines = []
     try:
-        leagues = [
-            ("eng.1", "Premier League"),
-            ("uefa.champions", "Champions League"),
-            ("eng.fa", "FA Cup"),
-            ("eng.league_cup", "Carabao Cup")
-        ]
+        leagues = [("eng.1", "Premier League"), ("uefa.champions", "Champions League")]
         past_events = []
-        future_events = []
         for lg_code, lg_name in leagues:
             try:
                 url_s = build_url(P_HTTPS, D_ESPN, f"/apis/site/v2/sports/soccer/{lg_code}/teams/{ARSENAL_ESPN_ID}/schedule")
-                res_s = requests.get(url_s, headers=HEADERS, timeout=8).json()
+                res_s = requests.get(url_s, headers=HEADERS, timeout=5).json()
                 for ev in res_s.get("events", []):
                     ev_dt = datetime.fromisoformat(ev["date"].replace("Z", "+00:00"))
                     state = ev.get("competitions", [{}])[0].get("status", {}).get("type", {}).get("state", "")
                     if state == "post" or ev_dt < now_utc:
                         past_events.append((ev_dt, lg_code, lg_name, ev))
-                    elif state == "pre" or ev_dt >= now_utc:
-                        future_events.append((ev_dt, lg_code, lg_name, ev))
             except Exception:
                 pass
-
-        if future_events and "取得中" in next_html:
-            future_events.sort(key=lambda x: x[0])
-            f_dt, _, f_lg_name, f_ev = future_events[0]
-            jst_dt = f_dt.astimezone(jst)
-            teams = f_ev["competitions"][0]["competitors"]
-            home = next((t["team"]["displayName"] for t in teams if t["homeAway"] == "home"), "")
-            away = next((t["team"]["displayName"] for t in teams if t["homeAway"] == "away"), "")
-            next_html = (
-                f"<div class='next-box'>"
-                f"<b>⏰ 次回公式戦: {home} vs {away}</b><br>"
-                f"日本時間: <span style='color:#ffcc00;font-weight:bold;'>{jst_dt.strftime('%Y年%m月%d日(%a) %H:%M')}</span> キックオフ ({f_lg_name})"
-                f"</div>"
-            )
 
         if past_events:
             past_events.sort(key=lambda x: x[0])
@@ -485,7 +433,7 @@ def get_match_and_stats():
             last_id = last_ev["id"]
 
             sum_url = build_url(P_HTTPS, D_ESPN, f"/apis/site/v2/sports/soccer/{last_lg_code}/summary?event={last_id}")
-            sum_res = requests.get(sum_url, headers=HEADERS, timeout=10).json()
+            sum_res = requests.get(sum_url, headers=HEADERS, timeout=6).json()
             comp = sum_res["header"]["competitions"][0]
             t_home = next(t for t in comp["competitors"] if t["homeAway"] == "home")
             t_away = next(t for t in comp["competitors"] if t["homeAway"] == "away")
@@ -579,14 +527,15 @@ def get_match_and_stats():
     return next_html, stats_md
 
 # --------------------------------------------------
-# 3. PL順位表 ＆ 個人スタッツランキング（FPL公式データ）
+# 4. PL順位表 ＆ 個人スタッツランキング
 # --------------------------------------------------
 def get_standings_and_rankings():
+    print("6. 順位表＆個人ランキング取得中...", flush=True)
     lines = []
 
     try:
         boot_url = build_url(P_HTTPS, D_FPL, "/api/bootstrap-static/")
-        boot = requests.get(boot_url, headers=HEADERS, timeout=10).json()
+        boot = requests.get(boot_url, headers=HEADERS, timeout=6).json()
         teams_map = {t["id"]: t["short_name"] for t in boot.get("teams", [])}
         ars_id = next((t["id"] for t in boot.get("teams", []) if t["name"] == "Arsenal"), 1)
         elements = boot.get("elements", [])
@@ -632,7 +581,7 @@ def get_standings_and_rankings():
 
     try:
         url = build_url(P_HTTPS, D_ESPN, "/apis/v2/sports/soccer/eng.1/standings")
-        res = requests.get(url, headers=HEADERS, timeout=10).json()
+        res = requests.get(url, headers=HEADERS, timeout=6).json()
         entries = res.get("children", [{}])[0].get("standings", {}).get("entries", [])
         if entries:
             lines.append("### 🏆 プレミアリーグ 最新順位表\n")
@@ -779,6 +728,7 @@ def main():
 
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html)
+    print("7. 全工程完了！", flush=True)
 
 if __name__ == "__main__":
     main()
