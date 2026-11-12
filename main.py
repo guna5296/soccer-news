@@ -33,7 +33,6 @@ HEADERS = {
 ARSENAL_ESPN_ID = "359"
 ARSENAL_FOTMOB_ID = "9825"
 
-# コピー時のMarkdown自動リンク化を100%防ぐURL結合関数
 def build_url(*parts):
     raw = "".join(parts)
     raw = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', raw)
@@ -51,11 +50,20 @@ D_ESPN = "site.api.espn" + ".com"
 D_FOTMOB = "www.fotmob" + ".com"
 D_FPL = "fantasy.premierleague" + ".com"
 
-# 女子チームの記事のみを正確に除外（U21/U18や同姓の男子選手を誤除外しない設定）
+# 女子チームの記事のみを除外（U21/U18は残す）
 WOMEN_EXCLUDE_PATTERNS = [
     r"\barsenal women\b", r"\bwsl\b", r"\bwomen's super league\b",
     r"\blionesses\b", r"\barsenal ladies\b", r"\brenee slegers\b",
     r"\bjonas eidevall\b", r"\bwomen's champions league\b", r"\buwcl\b"
+]
+
+# ビッグ6判定用キーワード（他14クラブと1:1に均等化するため使用）
+BIG6_PATTERNS = [
+    r"\bmanchester city\b", r"\bman city\b", r"\bguardiola\b", r"\bhaaland\b",
+    r"\bliverpool\b", r"\bslot\b", r"\bsalah\b", r"\banfield\b",
+    r"\bchelsea\b", r"\bmaresca\b", r"\bstamford bridge\b", r"\bpalmer\b",
+    r"\bmanchester united\b", r"\bman utd\b", r"\bman united\b", r"\bamorim\b", r"\bold trafford\b",
+    r"\btottenham\b", r"\bspurs\b", r"\bpostecoglou\b"
 ]
 
 def is_valid_article(title, summary):
@@ -65,8 +73,15 @@ def is_valid_article(title, summary):
             return False
     return True
 
+def is_big6_article(title, summary):
+    text = (title + " " + summary).lower()
+    for pat in BIG6_PATTERNS:
+        if re.search(pat, text):
+            return True
+    return False
+
 # --------------------------------------------------
-# 1. Geminiモデル自動検出 & 2分割生成（途中切れ完全防止・大量記事対応）
+# 1. Geminiモデル自動検出 & 2分割生成
 # --------------------------------------------------
 def get_best_model_list():
     candidates = ["gemini-3.8-flash", "gemini-3.0-flash", "gemini-3-flash"]
@@ -94,7 +109,6 @@ def call_gemini(prompt, candidates):
             )
             if res and res.text:
                 cleaned = res.text.replace("```html", "").replace("```", "").strip()
-                # セキュリティ属性の自動付与
                 cleaned = cleaned.replace('target="_blank"', 'target="_blank" rel="noopener noreferrer"')
                 return cleaned
         except Exception as e:
@@ -102,10 +116,21 @@ def call_gemini(prompt, candidates):
             continue
     return f"<p>要約生成エラー: {last_err}</p>"
 
-def fetch_rss_items(feeds):
-    items = []
+def get_all_uk_news():
     seen_titles = set()
-    for name, url, limit in feeds:
+
+    # --- A. アーセナル（トップ＋U21）の収集 ---
+    arsenal_feeds = [
+        ("Arsenal (Arseblog)", build_url(P_HTTPS, D_ARSEBLOG, "/feed/"), 7),
+        ("Arsenal (Football.London)", build_url(P_HTTPS, D_FLONDON, "/arsenal-fc/?service=rss"), 6),
+        ("Arsenal (Guardian)", build_url(P_HTTPS, D_GUARDIAN, "/football/arsenal/rss"), 5),
+        ("Arsenal (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/teams/arsenal/rss.xml"), 5),
+        ("Arsenal (JustArsenal)", build_url(P_HTTPS, D_JUSTARS, "/feed"), 5),
+        ("Arsenal U21/Youth (Jeorge Bird)", build_url(P_HTTPS, D_YOUTH, "/feed/"), 8)
+    ]
+
+    ars_data = []
+    for name, url, limit in arsenal_feeds:
         try:
             resp = scraper.get(url, timeout=10)
             f = feedparser.parse(resp.content)
@@ -121,44 +146,75 @@ def fetch_rss_items(feeds):
                 if not is_valid_article(title, clean_text):
                     continue
                 seen_titles.add(title)
-                items.append(f"[{name}]\nTitle: {title}\nContent: {clean_text[:950]}\nLink: {e.get('link', '')}\n")
+                ars_data.append(f"[{name}]\nTitle: {title}\nContent: {clean_text[:950]}\nLink: {e.get('link', '')}\n")
                 count += 1
         except Exception as e:
             print(f"RSSスキップ ({name}): {e}", flush=True)
-    return items
 
-def get_all_uk_news():
-    # グループA：アーセナル（トップチーム ＆ U21・アカデミー専門メディア）
-    arsenal_feeds = [
-        ("Arsenal (Arseblog)", build_url(P_HTTPS, D_ARSEBLOG, "/feed/"), 10),
-        ("Arsenal (Football.London)", build_url(P_HTTPS, D_FLONDON, "/arsenal-fc/?service=rss"), 8),
-        ("Arsenal (Guardian)", build_url(P_HTTPS, D_GUARDIAN, "/football/arsenal/rss"), 7),
-        ("Arsenal (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/teams/arsenal/rss.xml"), 6),
-        ("Arsenal (JustArsenal)", build_url(P_HTTPS, D_JUSTARS, "/feed"), 6),
-        ("Arsenal U21/Youth (Jeorge Bird)", build_url(P_HTTPS, D_YOUTH, "/feed/"), 8)
-    ]
-
-    # グループB：プレミアリーグ全般（ビッグ6 ＆ その他14クラブ ＆ 移籍ゴシップ）
+    # --- B. PL全般の収集（ビッグ6と他14クラブを1:1で均等確保） ---
     pl_feeds = [
-        ("PL全般 (Guardian)", build_url(P_HTTPS, D_GUARDIAN, "/football/premierleague/rss"), 24),
-        ("PL全般 (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/premier-league/rss.xml"), 20),
-        ("移籍ゴシップ (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/gossip/rss.xml"), 2)
+        ("PL (Guardian)", build_url(P_HTTPS, D_GUARDIAN, "/football/premierleague/rss")),
+        ("PL (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/premier-league/rss.xml")),
+        ("Football (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/rss.xml")),
+        ("Football (Guardian)", build_url(P_HTTPS, D_GUARDIAN, "/football/rss"))
     ]
 
-    ars_data = fetch_rss_items(arsenal_feeds)
-    pl_data = fetch_rss_items(pl_feeds)
+    big6_bucket = []
+    other14_bucket = []
+    gossip_bucket = []
+
+    for name, url in pl_feeds:
+        try:
+            resp = scraper.get(url, timeout=10)
+            f = feedparser.parse(resp.content)
+            for e in f.entries:
+                title = e.get("title", "").strip()
+                if not title or title in seen_titles:
+                    continue
+                raw_html = e.get("summary", "") or (e.get("content", [{}])[0].get("value", "") if e.get("content") else "")
+                clean_text = BeautifulSoup(raw_html, "html.parser").get_text(separator=" ", strip=True)
+                if not is_valid_article(title, clean_text):
+                    continue
+                # アーセナル単体記事はすでにAで取得済みなのでスキップ
+                if "arsenal" in title.lower() and not is_big6_article(title, clean_text):
+                    continue
+
+                seen_titles.add(title)
+                entry_str = f"[{name}]\nTitle: {title}\nContent: {clean_text[:950]}\nLink: {e.get('link', '')}\n"
+
+                if is_big6_article(title, clean_text):
+                    if len(big6_bucket) < 15:
+                        big6_bucket.append(entry_str)
+                else:
+                    if len(other14_bucket) < 16:
+                        other14_bucket.append(entry_str)
+        except Exception as e:
+            print(f"PL RSSスキップ ({name}): {e}", flush=True)
+
+    # 移籍ゴシップ専用枠
+    try:
+        g_url = build_url(P_HTTPS, D_BBC, "/sport/football/gossip/rss.xml")
+        resp = scraper.get(g_url, timeout=10)
+        f = feedparser.parse(resp.content)
+        for e in f.entries[:2]:
+            raw_html = e.get("summary", "") or (e.get("content", [{}])[0].get("value", "") if e.get("content") else "")
+            clean_text = BeautifulSoup(raw_html, "html.parser").get_text(separator=" ", strip=True)
+            gossip_bucket.append(f"[移籍ゴシップ (BBC)]\nTitle: {e.get('title', '')}\nContent: {clean_text[:1500]}\nLink: {e.get('link', '')}\n")
+    except Exception:
+        pass
+
     candidates = get_best_model_list()
 
-    # --- 翻訳バッチ1：アーセナル・トップチーム（12〜15件）＆ U21・アカデミー（4〜6件） ---
+    # --- 翻訳バッチ1：アーセナル（トップ 10〜12件 ＋ U21/アカデミー 4〜5件 ＝ 他よりちょい多め） ---
     prompt_ars = f"""
 あなたはアーセナル専門の熟練ジャーナリストです。
-以下の現地英語メディアの最新記事から、**男子トップチーム**および**U21・U18・アカデミー（Hale End）・若手ローン選手**の記事を抽出し、指定のHTML構造のみで濃密に日本語要約してください。
+以下の現地英語メディアの最新記事から、**男子トップチーム（10〜12件）**および**U21・U18・アカデミー・若手ローン選手（4〜5件）**の記事を抽出し、指定のHTML構造のみで濃密に日本語要約してください。
 ※女子チーム（WSL）の話題は除外してください。コードブロック（```html等）は絶対につけないでください。
 
 【出力ルール】
-1記事あたり、外部サイトを開かなくても全容が把握できるよう **具体的な発言、戦術・起用背景、スタッツや怪我の状況、今後の見通しを4〜5個の詳しい箇条書き（合計250〜350文字程度）** で濃く記述してください。
+1記事あたり、外部サイトを開かなくても全容が把握できるよう **具体的な発言、戦術・起用背景、スタッツや怪我の状況、今後の見通しを4個の詳しい箇条書き（合計250〜350文字程度）** で濃く記述してください。
 
-<h2>🔴 アーセナル・トップチーム最新ニュース（12〜15件）</h2>
+<h2>🔴 アーセナル・トップチーム最新ニュース（10〜12件）</h2>
 <details>
   <summary>🔴 [メディア名] [具体的で情報量の多い日本語タイトル]</summary>
   <div class="detail-box">
@@ -172,8 +228,8 @@ def get_all_uk_news():
   </div>
 </details>
 
-<h2>🌱 アーセナル U21・U18・アカデミー＆ローン選手動向（4〜6件）</h2>
-※「Arsenal U21/Youth (Jeorge Bird)」などの情報から、PL2（U21）やU18の試合結果、得点者、先発メンバー、有望株（プロ契約・トップ昇格候補・ローン組）の最新動向をすべて抽出し、以下の形式で詳しく出力してください：
+<h2>🌱 アーセナル U21・U18・アカデミー＆ローン選手動向（4〜5件）</h2>
+※「Arsenal U21/Youth (Jeorge Bird)」などの情報から、PL2（U21）やU18の試合結果、得点者、先発メンバー、有望株（プロ契約・トップ昇格候補・ローン組）の最新動向を抽出し、以下の形式で詳しく出力してください：
 <details>
   <summary>🌱 [U21/アカデミー] [若手選手名や試合結果がわかる具体的な日本語タイトル]</summary>
   <div class="detail-box">
@@ -190,16 +246,23 @@ def get_all_uk_news():
 {chr(10).join(ars_data)}
 """
 
-    # --- 翻訳バッチ2：ビッグ6（10〜12件）＆ その他PL14クラブ（10〜12件）＆ 移籍ゴシップ ---
+    # --- 翻訳バッチ2：ビッグ6（10〜11件）と 他プレミア14クラブ（10〜11件）を完全に半々（1:1）で出力 ---
+    pl_combined_input = (
+        "=== 【ビッグ6候補記事】 ===\n" + "\n".join(big6_bucket) +
+        "\n=== 【その他プレミア14クラブ候補記事】 ===\n" + "\n".join(other14_bucket) +
+        "\n=== 【移籍ゴシップ候補記事】 ===\n" + "\n".join(gossip_bucket)
+    )
+
     prompt_pl = f"""
 あなたはプレミアリーグ専門の熟練ジャーナリストです。
-以下の現地英語メディアの記事群から、**①ビッグ6（アーセナル以外の5クラブ：マンチェスターC、リヴァプール、チェルシー、マンチェスターU、トッテナム）** と **②その他プレミアリーグ14クラブ** と **③移籍の噂・ゴシップ** をバランス良く厳選し、指定のHTML構造のみで濃密に日本語要約してください。
-※女子サッカーの記事は除外してください。コードブロック（```html等）は絶対につけないでください。
+以下の現地英語メディアの記事群から、**①ビッグ6（アーセナル以外の5クラブ：10〜11件）** と **②その他プレミアリーグ14クラブ（10〜11件）** が **完全に半々（1:1の同数・同ボリューム）** になるように厳選し、さらに **③移籍の噂・ゴシップ（6〜8件）** を加えて、指定のHTML構造のみで濃密に日本語要約してください。
+※ビッグ6ばかりを優遇せず、必ずその他14クラブも同じ記事数（10〜11件）しっかり出力してください。
+※女子サッカーや他国リーグのみの記事は除外してください。コードブロック（```html等）は絶対につけないでください。
 
 【出力ルール】
 1記事あたり **具体的な発言、戦術やクラブ事情、数字や今後の見通しを含めて、4個の詳しい箇条書き（合計250〜350文字程度）** で濃く記述してください。
 
-<h2>⚔️ ビッグ6動向（10〜12件 ※シティ/リヴァプール/チェルシー/Utd/スパーズ）</h2>
+<h2>⚔️ ビッグ6動向（10〜11件 ※シティ/リヴァプール/チェルシー/Utd/スパーズ）</h2>
 <details>
   <summary>⚔️ 【クラブ名】[具体的でわかりやすい日本語タイトル]</summary>
   <div class="detail-box">
@@ -213,22 +276,22 @@ def get_all_uk_news():
   </div>
 </details>
 
-<h2>🦁 その他プレミアリーグ14クラブ動向（10〜12件 ※ビッグ6以外のPL全クラブ）</h2>
-※ニューカッスル、アストン・ヴィラ、ブライトン、ボーンマス、フラム、ブレントフォード、ウェストハム、パレス、エヴァートン、ノッティンガム・フォレスト等の記事を10〜12件抽出し、<details><summary>🦁 【クラブ名】[具体的な日本語タイトル]</summary>... の形式で4つの濃い箇条書きで出力してください。
+<h2>🦁 その他プレミア14クラブ動向（10〜11件 ※ビッグ6と同数・半々）</h2>
+※ニューカッスル、アストン・ヴィラ、ブライトン、ボーンマス、フラム、ブレントフォード、ウェストハム、パレス、エヴァートン、フォレスト、ウルヴス等の記事をビッグ6と同じ件数（10〜11件）抽出し、<details><summary>🦁 【クラブ名】[具体的な日本語タイトル]</summary>... の形式で4つの濃い箇条書きで出力してください。
 
-<h2>🔄 移籍の噂・ゴシップ (BBC Gossip / 現地紙まとめ：6〜10件)</h2>
+<h2>🔄 移籍の噂・ゴシップ (BBC Gossip / 現地紙まとめ：6〜8件)</h2>
 ※アーセナル関連の噂を最優先しつつ、プレミア各クラブの注目ゴシップを <details><summary>🔄 【クラブ名/選手名】[移籍の噂の見出し（情報元の新聞名）]</summary>... の形式で、移籍金や背景を含めて詳しく出力してください。
 
 【入力データ】:
-{chr(10).join(pl_data)}
+{pl_combined_input}
 """
 
     part1_html = call_gemini(prompt_ars, candidates) if ars_data else "<p>アーセナル記事取得なし</p>"
-    part2_html = call_gemini(prompt_pl, candidates) if pl_data else "<p>PL記事取得なし</p>"
+    part2_html = call_gemini(prompt_pl, candidates) if (big6_bucket or other14_bucket) else "<p>PL記事取得なし</p>"
     return part1_html + "\n" + part2_html
 
 # --------------------------------------------------
-# 2. 次回日程(JST) ＆ 前回試合スタッツ（全大会対応・個人ランキング＆地上戦デュエル）
+# 2. 次回日程(JST) ＆ 前回試合スタッツ
 # --------------------------------------------------
 def get_match_and_stats():
     jst = pytz.timezone("Asia/Tokyo")
@@ -236,7 +299,6 @@ def get_match_and_stats():
     next_html = "<div class='next-box'>次回試合予定データ取得中</div>"
     stats_md = "<p>スタッツデータなし</p>"
 
-    # --- A. FPL公式APIからプレミアリーグ日程を取得 ---
     fpl_teams = {}
     fpl_last_fix = None
     try:
@@ -268,7 +330,6 @@ def get_match_and_stats():
     except Exception as e:
         print(f"FPL fix err: {e}", flush=True)
 
-    # --- B. FotMobから超詳細スタッツ・試合内ランキングを取得 ---
     fotmob_lines = []
     try:
         fm_team_url = build_url(P_HTTPS, D_FOTMOB, f"/api/teams?id={ARSENAL_FOTMOB_ID}&ccode3=JPN")
@@ -380,7 +441,6 @@ def get_match_and_stats():
         stats_md = markdown.markdown("\n".join(fotmob_lines), extensions=['tables'])
         return next_html, stats_md
 
-    # --- C. FotMobが弾かれた場合の全大会横断バックアップ（PL / CL / FA杯 / カラバオ杯） ---
     espn_lines = []
     try:
         leagues = [
@@ -683,7 +743,6 @@ def main():
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     isPulling = (window.scrollY === 0);
-    // 表（テーブル）の上を触っている時は横スワイプのタブ切り替えを無効化
     touchedTable = Boolean(e.target.closest('table'));
   }}, {{passive: true}});
 
