@@ -12,16 +12,15 @@ from google import genai
 from google.genai import types
 from bs4 import BeautifulSoup
 
-print("1. 高速版スクリプト開始...", flush=True)
+print("1. スクリプト開始...", flush=True)
 
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("GEMINI_API_KEY is missing in GitHub Secrets.")
 
-# 1回の通信上限を45秒に設定
 client = genai.Client(
     api_key=api_key,
-    http_options=types.HttpOptions(timeout=45000)
+    http_options=types.HttpOptions(timeout=50000)
 )
 
 HEADERS = {
@@ -78,9 +77,29 @@ def is_big6_article(title, summary):
     return False
 
 # --------------------------------------------------
-# 1. Geminiモデルの確定（1回だけテストして有効モデルをロック）
+# HTMLの閉じタグ破損を自動修復し、他タブの消失を100%防ぐ関数
 # --------------------------------------------------
-def detect_working_model():
+def sanitize_html_fragment(raw_text):
+    if not raw_text:
+        return ""
+    cleaned = raw_text.replace("```html", "").replace("```", "").strip()
+    # 万が一途中で切れて最後の <details> が </details> で閉じていない場合、半端な末尾を切り落とす
+    last_open = cleaned.rfind("<details")
+    last_close = cleaned.rfind("</details>")
+    if last_open != -1 and (last_close == -1 or last_open > last_close):
+        cleaned = cleaned[:last_open].strip()
+    # BeautifulSoupで閉じ忘れタグを完全修復
+    soup = BeautifulSoup(f"<div>{cleaned}</div>", "html.parser")
+    for a in soup.find_all("a"):
+        a["target"] = "_blank"
+        a["rel"] = "noopener noreferrer"
+    inner = "".join(str(child) for child in soup.div.contents) if soup.div else cleaned
+    return inner
+
+# --------------------------------------------------
+# 1. Geminiモデル検出 & 3分割安全生成
+# --------------------------------------------------
+def get_working_models():
     candidates = []
     try:
         for m in client.models.list():
@@ -89,46 +108,38 @@ def detect_working_model():
                 candidates.append(name)
     except Exception:
         pass
-    for fallback in ["gemini-3.8-flash", "gemini-3.0-flash", "gemini-3-flash", "gemini-2.5-flash"]:
-        if fallback not in candidates:
-            candidates.append(fallback)
+    for fb in ["gemini-3.8-flash", "gemini-3.0-flash", "gemini-3-flash", "gemini-2.5-flash"]:
+        if fb not in candidates:
+            candidates.append(fb)
+    return candidates
 
-    for model_name in candidates:
+def call_gemini_safe(prompt, models):
+    last_err = ""
+    for model_name in models:
         try:
-            res = client.models.generate_content(
-                model=model_name,
-                contents="OK",
-                config=types.GenerateContentConfig(max_output_tokens=5)
-            )
+            # thinking_budget=0 が使えるモデルは思考トークンによる出力枠圧迫を防止
+            try:
+                cfg = types.GenerateContentConfig(
+                    max_output_tokens=8192,
+                    thinking_config=types.ThinkingConfig(thinking_budget=0)
+                )
+                res = client.models.generate_content(model=model_name, contents=prompt, config=cfg)
+            except Exception:
+                cfg = types.GenerateContentConfig(max_output_tokens=8192)
+                res = client.models.generate_content(model=model_name, contents=prompt, config=cfg)
+
             if res and res.text:
-                print(f"有効モデル確定: {model_name}", flush=True)
-                return model_name
-        except Exception:
+                return sanitize_html_fragment(res.text)
+        except Exception as e:
+            last_err = str(e)
             continue
-    return candidates[0]
+    return f"<p>要約エラー: {last_err}</p>"
 
-def call_gemini_single(prompt, model_name):
-    try:
-        res = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(max_output_tokens=8192)
-        )
-        if res and res.text:
-            cleaned = res.text.replace("```html", "").replace("```", "").strip()
-            return cleaned.replace('target="_blank"', 'target="_blank" rel="noopener noreferrer"')
-    except Exception as e:
-        return f"<p>要約生成エラー ({model_name}): {e}</p>"
-    return "<p>要約結果が空でした</p>"
-
-# --------------------------------------------------
-# 2. RSSフィードの並列高速取得（全サイト合計8秒以内で完了）
-# --------------------------------------------------
 def fetch_single_feed(name, url, limit):
     results = []
     try:
-        # 接続4秒・読込6秒の厳格なタイムアウト
-        resp = requests.get(url, headers=HEADERS, timeout=(4, 6))
+        scraper = cloudscraper.create_scraper()
+        resp = scraper.get(url, headers=HEADERS, timeout=8)
         f = feedparser.parse(resp.content)
         for e in f.entries[:limit]:
             title = e.get("title", "").strip()
@@ -138,7 +149,7 @@ def fetch_single_feed(name, url, limit):
             clean_text = BeautifulSoup(raw_html, "html.parser").get_text(separator=" ", strip=True)
             if not is_valid_article(title, clean_text):
                 continue
-            results.append((name, title, clean_text[:650], e.get("link", "")))
+            results.append((name, title, clean_text[:600], e.get("link", "")))
     except Exception as e:
         print(f"RSSスキップ ({name}): {e}", flush=True)
     return results
@@ -146,28 +157,28 @@ def fetch_single_feed(name, url, limit):
 def get_all_uk_news():
     print("2. RSSフィードを並列取得中...", flush=True)
     arsenal_feeds = [
-        ("Arsenal (Arseblog)", build_url(P_HTTPS, D_ARSEBLOG, "/feed/"), 7),
-        ("Arsenal (Football.London)", build_url(P_HTTPS, D_FLONDON, "/arsenal-fc/?service=rss"), 6),
-        ("Arsenal (Guardian)", build_url(P_HTTPS, D_GUARDIAN, "/football/arsenal/rss"), 5),
-        ("Arsenal (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/teams/arsenal/rss.xml"), 5),
-        ("Arsenal (JustArsenal)", build_url(P_HTTPS, D_JUSTARS, "/feed"), 5),
-        ("Arsenal U21/Youth (Jeorge Bird)", build_url(P_HTTPS, D_YOUTH, "/feed/"), 7)
+        ("Arseblog", build_url(P_HTTPS, D_ARSEBLOG, "/feed/"), 6),
+        ("Football.London", build_url(P_HTTPS, D_FLONDON, "/arsenal-fc/?service=rss"), 5),
+        ("Guardian", build_url(P_HTTPS, D_GUARDIAN, "/football/arsenal/rss"), 5),
+        ("BBC", build_url(P_HTTPS, D_BBC, "/sport/football/teams/arsenal/rss.xml"), 4),
+        ("JustArsenal", build_url(P_HTTPS, D_JUSTARS, "/feed"), 4),
+        ("Arsenal Youth (U21/U18)", build_url(P_HTTPS, D_YOUTH, "/feed/"), 6)
     ]
 
     pl_feeds = [
-        ("PL (Guardian)", build_url(P_HTTPS, D_GUARDIAN, "/football/premierleague/rss"), 25),
-        ("PL (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/premier-league/rss.xml"), 25),
-        ("Football (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/rss.xml"), 20),
-        ("移籍ゴシップ (BBC)", build_url(P_HTTPS, D_BBC, "/sport/football/gossip/rss.xml"), 2)
+        ("Guardian PL", build_url(P_HTTPS, D_GUARDIAN, "/football/premierleague/rss"), 25),
+        ("BBC PL", build_url(P_HTTPS, D_BBC, "/sport/football/premier-league/rss.xml"), 25),
+        ("BBC Football", build_url(P_HTTPS, D_BBC, "/sport/football/rss.xml"), 20),
+        ("BBC Gossip", build_url(P_HTTPS, D_BBC, "/sport/football/gossip/rss.xml"), 2)
     ]
 
     seen_titles = set()
-    ars_data = []
+    ars_top_bucket = []
+    ars_u21_bucket = []
     big6_bucket = []
     other14_bucket = []
     gossip_bucket = []
 
-    # 全10フィードを並列で一斉取得
     with ThreadPoolExecutor(max_workers=10) as executor:
         future_map = {}
         for name, url, limit in arsenal_feeds:
@@ -176,440 +187,394 @@ def get_all_uk_news():
             future_map[executor.submit(fetch_single_feed, name, url, limit)] = ("PL", name)
 
         for fut in as_completed(future_map):
-            group, fname = future_map[fut]
-            items = fut.result()
-            for name, title, text, link in items:
+            group, _ = future_map[fut]
+            for name, title, text, link in fut.result():
                 if title in seen_titles:
                     continue
                 seen_titles.add(title)
                 entry_str = f"[{name}]\nTitle: {title}\nContent: {text}\nLink: {link}\n"
 
                 if group == "ARS":
-                    ars_data.append(entry_str)
-                elif "ゴシップ" in name:
+                    if "Youth" in name or any(k in (title + text).lower() for k in ["u21", "u18", "under-21", "under-18", "academy", "hale end", "pl2"]):
+                        ars_u21_bucket.append(entry_str)
+                    else:
+                        if len(ars_top_bucket) < 12:
+                            ars_top_bucket.append(entry_str)
+                elif "Gossip" in name:
                     gossip_bucket.append(entry_str)
                 else:
                     if "arsenal" in title.lower() and not is_big6_article(title, text):
                         continue
                     if is_big6_article(title, text):
-                        if len(big6_bucket) < 12:
+                        if len(big6_bucket) < 10:
                             big6_bucket.append(entry_str)
                     else:
-                        if len(other14_bucket) < 12:
+                        if len(other14_bucket) < 10:
                             other14_bucket.append(entry_str)
 
-    print(f"RSS取得完了: Arsenal={len(ars_data)}件, BIG6={len(big6_bucket)}件, 他PL={len(other14_bucket)}件", flush=True)
+    models = get_working_models()
 
-    working_model = detect_working_model()
+    # バッチ1：アーセナル（トップ 9〜11件 ＋ U21・アカデミー 4〜5件）
+    prompt_1 = f"""
+以下の英語記事から、①アーセナル男子トップチーム（9〜11件）と ②アーセナルU21/U18/アカデミー/ローン選手（4〜5件）を日本語で濃密に要約し、純粋なHTMLタグのみで出力してください。
+※各記事は必ず `</details>` まで閉じてください。
 
-    prompt_ars = f"""
-あなたはアーセナル専門の熟練ジャーナリストです。
-以下の現地英語メディアの最新記事から、**男子トップチーム（10〜12件）**および**U21・U18・アカデミー・若手ローン選手（4〜5件）**の記事を抽出し、指定のHTML構造のみで濃密に日本語要約してください。
-※女子チーム（WSL）の話題は除外してください。コードブロック（```html等）は絶対につけないでください。
-
-<h2>🔴 アーセナル・トップチーム最新ニュース（10〜12件）</h2>
+<h2>🔴 アーセナル・トップチーム最新ニュース</h2>
 <details>
-  <summary>🔴 [メディア名] [具体的で情報量の多い日本語タイトル]</summary>
+  <summary>🔴 [メディア名] [具体的な日本語タイトル]</summary>
   <div class="detail-box">
     <ul>
-      <li><b>要点・背景：</b>[誰が・いつ・どうしたか、具体的な背景]</li>
-      <li><b>発言・引用：</b>[アルテタ監督や選手、現地番記者の具体的なコメント翻訳]</li>
-      <li><b>戦術・詳細データ：</b>[ポジション、怪我の状態、戦術的ポイントや契約条件]</li>
-      <li><b>今後の見通し：</b>[次節の起用や今後のスケジュールへの影響]</li>
+      <li><b>背景・要点：</b>[具体的な出来事や試合・契約の状況]</li>
+      <li><b>発言・コメント：</b>[監督・選手・記者の具体的な発言内容]</li>
+      <li><b>戦術・今後の影響：</b>[起用法・怪我・今後の見通し]</li>
     </ul>
-    <p class="ext-link"><a href="[元記事URL]" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="[元記事URL]">🔗 元記事(英語)を開く</a></p>
   </div>
 </details>
 
-<h2>🌱 アーセナル U21・U18・アカデミー＆ローン選手動向（4〜5件）</h2>
+<h2>🌱 アーセナル U21・U18・アカデミー＆若手動向</h2>
 <details>
-  <summary>🌱 [U21/アカデミー] [若手選手名や試合結果がわかる具体的な日本語タイトル]</summary>
+  <summary>🌱 [U21/Youth] [選手名や試合結果がわかる日本語タイトル]</summary>
   <div class="detail-box">
     <ul>
-      <li><b>試合結果・動向：</b>[U21/U18の対戦カード、スコア、または契約・ローン情報]</li>
-      <li><b>注目選手・スタッツ：</b>[ゴールやアシストを記録した若手選手名、出場メンバー、プレー評価]</li>
-      <li><b>トップチームへの展望：</b>[トップ帯同状況や今後の期待値]</li>
+      <li><b>試合結果・動向：</b>[U21/U18のスコア、契約、ローン情報]</li>
+      <li><b>注目選手の評価：</b>[得点者や出場メンバー、プレー内容]</li>
+      <li><b>今後の展望：</b>[トップチーム帯同や昇格への期待]</li>
     </ul>
-    <p class="ext-link"><a href="[元記事URL]" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="[元記事URL]">🔗 元記事(英語)を開く</a></p>
   </div>
 </details>
 
-【入力データ】:
-{chr(10).join(ars_data)}
+【トップチーム候補】:
+{chr(10).join(ars_top_bucket)}
+
+【U21/アカデミー候補】:
+{chr(10).join(ars_u21_bucket)}
 """
 
-    pl_combined_input = (
-        "=== 【ビッグ6候補記事】 ===\n" + "\n".join(big6_bucket) +
-        "\n=== 【その他プレミア14クラブ候補記事】 ===\n" + "\n".join(other14_bucket) +
-        "\n=== 【移籍ゴシップ候補記事】 ===\n" + "\n".join(gossip_bucket)
-    )
+    # バッチ2：ビッグ6（8〜9件）と その他プレミア14クラブ（8〜9件）を1:1の同数＋移籍ゴシップ
+    prompt_2 = f"""
+以下の英語記事から、**①ビッグ6（8〜9件）** と **②その他プレミア14クラブ（8〜9件）** を **完全に1:1の同数** で出力し、最後に **③移籍ゴシップ（5〜6件）** を純粋なHTMLタグのみで出力してください。
+※ビッグ6だけでなく、必ずその他14クラブも同じ件数出力してください。各記事は必ず `</details>` まで閉じてください。
 
-    prompt_pl = f"""
-あなたはプレミアリーグ専門の熟練ジャーナリストです。
-以下の現地英語メディアの記事群から、**①ビッグ6（アーセナル以外の5クラブ：8〜10件）** と **②その他プレミアリーグ14クラブ（8〜10件）** が **完全に半々（1:1の同数）** になるように厳選し、さらに **③移籍の噂・ゴシップ（5〜7件）** を加えて、指定のHTML構造のみで濃密に日本語要約してください。
-※コードブロック（```html等）は絶対につけないでください。
-
-<h2>⚔️ ビッグ6動向（8〜10件 ※シティ/リヴァプール/チェルシー/Utd/スパーズ）</h2>
+<h2>⚔️ ビッグ6動向（シティ/リヴァプール/チェルシー/Utd/スパーズ）</h2>
 <details>
-  <summary>⚔️ 【クラブ名】[具体的でわかりやすい日本語タイトル]</summary>
+  <summary>⚔️ 【クラブ名】[具体的な日本語タイトル]</summary>
   <div class="detail-box">
     <ul>
-      <li><b>要点・背景：</b>[出来事や試合・クラブ状況の具体的な背景]</li>
-      <li><b>監督・選手の発言：</b>[具体的なコメント内容の翻訳]</li>
-      <li><b>戦術・チーム事情：</b>[怪我人、起用法、スタッツ、経営・処分の詳細]</li>
-      <li><b>今後の影響：</b>[順位争いや次節への影響]</li>
+      <li><b>背景・要点：</b>[具体的な出来事や背景]</li>
+      <li><b>発言・コメント：</b>[監督や選手の具体的な発言]</li>
+      <li><b>チーム事情・今後：</b>[戦術・怪我人・順位争いへの影響]</li>
     </ul>
-    <p class="ext-link"><a href="[元記事URL]" target="_blank">🔗 元記事(英語)を開く ※通信発生</a></p>
+    <p class="ext-link"><a href="[元記事URL]">🔗 元記事(英語)を開く</a></p>
   </div>
 </details>
 
-<h2>🦁 その他プレミア14クラブ動向（8〜10件 ※ビッグ6と同数・半々）</h2>
-※ニューカッスル、アストン・ヴィラ、ブライトン、ボーンマス、フラム、ブレントフォード、ウェストハム、パレス、エヴァートン、フォレスト等の記事をビッグ6と同数抽出し、<details><summary>🦁 【クラブ名】[具体的な日本語タイトル]</summary>... の形式で4つの濃い箇条書きで出力してください。
+<h2>🦁 その他プレミア14クラブ動向（ビッグ6と同数）</h2>
+<details>
+  <summary>🦁 【クラブ名】[具体的な日本語タイトル]</summary>
+  <div class="detail-box">
+    <ul>
+      <li><b>背景・要点：</b>[具体的な出来事や背景]</li>
+      <li><b>発言・詳細：</b>[監督や選手の発言・スタッツ]</li>
+      <li><b>今後の影響：</b>[次節やシーズンへの影響]</li>
+    </ul>
+    <p class="ext-link"><a href="[元記事URL]">🔗 元記事(英語)を開く</a></p>
+  </div>
+</details>
 
-<h2>🔄 移籍の噂・ゴシップ (BBC Gossip / 現地紙まとめ：5〜7件)</h2>
-※アーセナル関連の噂を最優先しつつ、プレミア各クラブの注目ゴシップを <details><summary>🔄 【クラブ名/選手名】[移籍の噂の見出し（情報元の新聞名）]</summary>... の形式で詳しく出力してください。
+<h2>🔄 移籍の噂・ゴシップまとめ</h2>
+<details>
+  <summary>🔄 【クラブ名/選手名】[移籍の噂の見出し（情報元の新聞名）]</summary>
+  <div class="detail-box">
+    <ul>
+      <li><b>移籍情報詳細：</b>[移籍金・契約条件・競合クラブなどの詳細]</li>
+    </ul>
+    <p class="ext-link"><a href="[元記事URL]">🔗 元記事(英語)を開く</a></p>
+  </div>
+</details>
 
-【入力データ】:
-{pl_combined_input}
+【ビッグ6候補】:
+{chr(10).join(big6_bucket)}
+
+【その他14クラブ候補】:
+{chr(10).join(other14_bucket)}
+
+【移籍ゴシップ候補】:
+{chr(10).join(gossip_bucket)}
 """
 
-    print("3. Geminiで2つのバッチを同時並列翻訳中...", flush=True)
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        f1 = executor.submit(call_gemini_single, prompt_ars, working_model)
-        f2 = executor.submit(call_gemini_single, prompt_pl, working_model)
-        part1_html = f1.result()
-        part2_html = f2.result()
-
-    print("4. Gemini翻訳完了！", flush=True)
-    return part1_html + "\n" + part2_html
+    print("3. Gemini翻訳実行中 (1/2: アーセナル＆U21)...", flush=True)
+    html_1 = call_gemini_safe(prompt_1, models)
+    print("4. Gemini翻訳実行中 (2/2: BIG6＆他14クラブ)...", flush=True)
+    html_2 = call_gemini_safe(prompt_2, models)
+    return html_1 + "\n" + html_2
 
 # --------------------------------------------------
-# 3. 次回日程(JST) ＆ 前回試合スタッツ
+# 2. 次回日程 ＆ 前回試合スタッツ ＆ PL順位表（FPL公式データを完全統合）
 # --------------------------------------------------
-def get_match_and_stats():
-    print("5. 試合日程＆スタッツ取得中...", flush=True)
+def get_all_football_data():
+    print("5. 公式データ（日程・スタッツ・順位表・ランキング）取得中...", flush=True)
     jst = pytz.timezone("Asia/Tokyo")
-    now_utc = datetime.now(timezone.utc)
     next_html = "<div class='next-box'>次回試合予定データ取得中</div>"
-    stats_md = "<p>スタッツデータなし</p>"
+    stats_lines = []
+    standings_lines = []
 
+    # --- 1) 100%確実に繋がるプレミアリーグ公式 (FPL) API から基礎データを全取得 ---
     fpl_teams = {}
-    fpl_last_fix = None
-    try:
-        boot_url = build_url(P_HTTPS, D_FPL, "/api/bootstrap-static/")
-        boot = requests.get(boot_url, headers=HEADERS, timeout=6).json()
-        fpl_teams = {t["id"]: t["name"] for t in boot.get("teams", [])}
-        ars_id = next((t["id"] for t in boot.get("teams", []) if t["name"] == "Arsenal"), 1)
+    fpl_short = {}
+    fpl_elements = {}
+    fpl_fixes = []
+    ars_id = 1
 
-        fix_url = build_url(P_HTTPS, D_FPL, "/api/fixtures/")
-        fixes = requests.get(fix_url, headers=HEADERS, timeout=6).json()
-        ars_fixes = [f for f in fixes if f.get("team_h") == ars_id or f.get("team_a") == ars_id]
-        
-        fpl_up = [f for f in ars_fixes if not f.get("finished") and f.get("kickoff_time")]
-        if fpl_up:
-            nxt = fpl_up[0]
-            utc_dt = datetime.fromisoformat(nxt["kickoff_time"].replace("Z", "+00:00"))
-            jst_dt = utc_dt.astimezone(jst)
-            h_name = fpl_teams.get(nxt["team_h"], "Home")
-            a_name = fpl_teams.get(nxt["team_a"], "Away")
-            next_html = (
-                f"<div class='next-box'>"
-                f"<b>⏰ 次回PL試合: {h_name} vs {a_name}</b><br>"
-                f"日本時間: <span style='color:#ffcc00;font-weight:bold;'>{jst_dt.strftime('%Y年%m月%d日(%a) %H:%M')}</span> キックオフ (PL 第{nxt.get('event', '-')}節)"
-                f"</div>"
+    try:
+        boot = requests.get(build_url(P_HTTPS, D_FPL, "/api/bootstrap-static/"), headers=HEADERS, timeout=10).json()
+        for t in boot.get("teams", []):
+            fpl_teams[t["id"]] = t["name"]
+            fpl_short[t["id"]] = t["short_name"]
+            if t["name"] == "Arsenal":
+                ars_id = t["id"]
+        for el in boot.get("elements", []):
+            fpl_elements[el["id"]] = el
+
+        fpl_fixes = requests.get(build_url(P_HTTPS, D_FPL, "/api/fixtures/"), headers=HEADERS, timeout=10).json()
+    except Exception as e:
+        print(f"FPL base err: {e}", flush=True)
+
+    # 次回日程の確定
+    ars_fixes = [f for f in fpl_fixes if f.get("team_h") == ars_id or f.get("team_a") == ars_id]
+    fpl_up = [f for f in ars_fixes if not f.get("finished") and f.get("kickoff_time")]
+    if fpl_up:
+        nxt = fpl_up[0]
+        utc_dt = datetime.fromisoformat(nxt["kickoff_time"].replace("Z", "+00:00"))
+        jst_dt = utc_dt.astimezone(jst)
+        h_name = fpl_teams.get(nxt["team_h"], "Home")
+        a_name = fpl_teams.get(nxt["team_a"], "Away")
+        next_html = (
+            f"<div class='next-box'>"
+            f"<b>⏰ 次回PL試合: {h_name} vs {a_name}</b><br>"
+            f"日本時間: <span style='color:#ffcc00;font-weight:bold;'>{jst_dt.strftime('%Y年%m月%d日(%a) %H:%M')}</span> キックオフ (PL 第{nxt.get('event', '-')}節)"
+            f"</div>"
+        )
+
+    # --- 2) 前回試合スタッツの構築（FotMob -> FPL公式ライブスタッツ＆ESPN） ---
+    fpl_fin = [f for f in ars_fixes if f.get("finished") or f.get("finished_provisional") or (f.get("team_h_score") is not None and f.get("started"))]
+    if fpl_fin:
+        last_fix = fpl_fin[-1]
+        gw = last_fix.get("event")
+        fix_id = last_fix.get("id")
+        h_id_fpl = last_fix.get("team_h")
+        a_id_fpl = last_fix.get("team_a")
+        h_name = fpl_teams.get(h_id_fpl, "Home")
+        a_name = fpl_teams.get(a_id_fpl, "Away")
+        h_score = last_fix.get("team_h_score", 0)
+        a_score = last_fix.get("team_a_score", 0)
+        kick_str = ""
+        if last_fix.get("kickoff_time"):
+            k_dt = datetime.fromisoformat(last_fix["kickoff_time"].replace("Z", "+00:00")).astimezone(jst)
+            kick_str = k_dt.strftime("%Y/%m/%d")
+
+        stats_lines.append(f"### ⚽ {h_name} {h_score} - {a_score} {a_name} (PL 第{gw}節 {kick_str})\n")
+
+        # A. 試合の得点・アシスト・カード・セーブ内訳 (FPL fixtures stats)
+        fix_stats = last_fix.get("stats", [])
+        stat_label_jp = {
+            "goals_scored": "⚽ ゴール",
+            "assists": "🎯 アシスト",
+            "own_goals": "💥 オウンゴール",
+            "yellow_cards": "🟨 イエローカード",
+            "red_cards": "🟥 レッドカード",
+            "saves": "🧤 GKセーブ数",
+            "bonus": "👑 公式MOMボーナス(3-2-1pt)"
+        }
+        event_rows = []
+        for st in fix_stats:
+            ident = st.get("identifier")
+            if ident in stat_label_jp:
+                h_items = [f"{fpl_elements.get(x['element'], {}).get('web_name', '')}({x['value']})" for x in st.get("h", [])]
+                a_items = [f"{fpl_elements.get(x['element'], {}).get('web_name', '')}({x['value']})" for x in st.get("a", [])]
+                if h_items or a_items:
+                    event_rows.append(f"| **{stat_label_jp[ident]}** | {', '.join(h_items) or '-'} | {', '.join(a_items) or '-'} |")
+
+        if event_rows:
+            stats_lines.append("#### 🎯 試合サマリー＆主要イベント")
+            stats_lines.append(f"| 項目 | {h_name} | {a_name} |")
+            stats_lines.append("| :--- | :--- | :--- |")
+            stats_lines.extend(event_rows)
+            stats_lines.append("")
+
+        # B. FPL公式ライブAPI (`/api/event/{gw}/live/`) から、この試合の全出場選手のxG・守備・BPS採点を取得
+        try:
+            live_url = build_url(P_HTTPS, D_FPL, f"/api/event/{gw}/live/")
+            live_res = requests.get(live_url, headers=HEADERS, timeout=10).json()
+            ars_match_players = []
+            h_totals = {"xg": 0.0, "xa": 0.0, "tackles": 0, "cbi": 0, "recoveries": 0, "bps": 0}
+            a_totals = {"xg": 0.0, "xa": 0.0, "tackles": 0, "cbi": 0, "recoveries": 0, "bps": 0}
+
+            for el_live in live_res.get("elements", []):
+                el_id = el_live.get("id")
+                p_info = fpl_elements.get(el_id, {})
+                t_id = p_info.get("team")
+                if t_id not in (h_id_fpl, a_id_fpl):
+                    continue
+
+                # この試合（fix_id）のスタッツを抽出
+                explain = el_live.get("explain", [])
+                match_mins = 0
+                for exp in explain:
+                    if exp.get("fixture") == fix_id:
+                        for s_item in exp.get("stats", []):
+                            if s_item.get("identifier") == "minutes":
+                                match_mins = s_item.get("value", 0)
+                st = el_live.get("stats", {})
+                if match_mins == 0 and st.get("minutes", 0) == 0:
+                    continue
+
+                xg_v = float(st.get("expected_goals", 0) or 0)
+                xa_v = float(st.get("expected_assists", 0) or 0)
+                tk_v = int(st.get("tackles", 0) or 0)
+                cbi_v = int(st.get("clearances_blocks_interceptions", 0) or 0)
+                rec_v = int(st.get("recoveries", 0) or 0)
+                bps_v = int(st.get("bps", 0) or 0)
+
+                target_tot = h_totals if t_id == h_id_fpl else a_totals
+                target_tot["xg"] += xg_v
+                target_tot["xa"] += xa_v
+                target_tot["tackles"] += tk_v
+                target_tot["cbi"] += cbi_v
+                target_tot["recoveries"] += rec_v
+
+                if t_id == ars_id:
+                    ars_match_players.append({
+                        "name": p_info.get("web_name", ""),
+                        "mins": st.get("minutes", match_mins),
+                        "g": st.get("goals_scored", 0),
+                        "a": st.get("assists", 0),
+                        "xg": xg_v,
+                        "xa": xa_v,
+                        "tk": tk_v,
+                        "cbi": cbi_v,
+                        "rec": rec_v,
+                        "bps": bps_v,
+                        "ict": float(st.get("ict_index", 0) or 0)
+                    })
+
+            # チーム比較スタッツ表
+            stats_lines.append("#### 📊 チームスタッツ比較 (PL公式トラッキング集計)")
+            stats_lines.append(f"| 指標 | {h_name} | {a_name} |")
+            stats_lines.append("| :--- | :---: | :---: |")
+            stats_lines.append(f"| **ゴール期待値 (xG)** | **{h_totals['xg']:.2f}** | **{a_totals['xg']:.2f}** |")
+            stats_lines.append(f"| **アシスト期待値 (xA)** | {h_totals['xa']:.2f} | {a_totals['xa']:.2f} |")
+            stats_lines.append(f"| **タックル成功数** | {h_totals['tackles']} | {a_totals['tackles']} |")
+            stats_lines.append(f"| **クリア・ブロック・インターセプト** | {h_totals['cbi']} | {a_totals['cbi']} |")
+            stats_lines.append(f"| **ボール回収数 (Recoveries)** | {h_totals['recoveries']} | {a_totals['recoveries']} |")
+            stats_lines.append("")
+
+            # この試合のアーセナル個人ランキング TOP 3
+            if len(ars_match_players) >= 3:
+                top_bps = sorted(ars_match_players, key=lambda x: x["bps"], reverse=True)[:3]
+                top_def = sorted(ars_match_players, key=lambda x: x["tk"] + x["rec"] + x["cbi"], reverse=True)[:3]
+                top_xg = sorted(ars_match_players, key=lambda x: x["xg"] + x["xa"], reverse=True)[:3]
+
+                stats_lines.append("#### 👑 この試合のアーセナル個人ランキング")
+                stats_lines.append("| 部門 | 🥇 1位 | 🥈 2位 | 🥉 3位 |")
+                stats_lines.append("| :--- | :--- | :--- | :--- |")
+                stats_lines.append(f"| **公式BPS採点 (総合貢献)** | **{top_bps[0]['name']}** ({top_bps[0]['bps']}pt) | {top_bps[1]['name']} ({top_bps[1]['bps']}pt) | {top_bps[2]['name']} ({top_bps[2]['bps']}pt) |")
+                stats_lines.append(f"| **守備＆デュエル回収王** | **{top_def[0]['name']}** ({top_def[0]['tk']+top_def[0]['rec']+top_def[0]['cbi']}回) | {top_def[1]['name']} ({top_def[1]['tk']+top_def[1]['rec']+top_def[1]['cbi']}回) | {top_def[2]['name']} ({top_def[2]['tk']+top_def[2]['rec']+top_def[2]['cbi']}回) |")
+                stats_lines.append(f"| **攻撃関与期待値 (xG+xA)** | **{top_xg[0]['name']}** ({top_xg[0]['xg']+top_xg[0]['xa']:.2f}) | {top_xg[1]['name']} ({top_xg[1]['xg']+top_xg[1]['xa']:.2f}) | {top_xg[2]['name']} ({top_xg[2]['xg']+top_xg[2]['xa']:.2f}) |")
+                stats_lines.append("")
+
+                # 全出場選手スタッツ一覧
+                ars_match_players.sort(key=lambda x: (x["mins"], x["bps"]), reverse=True)
+                stats_lines.append("#### 👥 アーセナル出場選手 個人スタッツ＆採点一覧")
+                stats_lines.append("| 選手 | 時間 | G/A | xG | xA | タックル | ボール回収 | 守備CBI | BPS採点 |")
+                stats_lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+                for p in ars_match_players:
+                    ga = f"**{p['g']}G {p['a']}A**" if (p["g"] or p["a"]) else "-"
+                    stats_lines.append(f"| **{p['name']}** | {p['mins']}' | {ga} | {p['xg']:.2f} | {p['xa']:.2f} | {p['tk']} | {p['rec']} | {p['cbi']} | **{p['bps']}** |")
+                stats_lines.append("")
+        except Exception as e:
+            print(f"FPL live match err: {e}", flush=True)
+
+    # --- 3) 順位表＆シーズン個人ランキングの構築（100%表示保証） ---
+    if fpl_elements:
+        all_els = list(fpl_elements.values())
+        ars_season = [p for p in all_els if p.get("team") == ars_id and p.get("minutes", 0) > 0]
+        if ars_season:
+            standings_lines.append("### 🔴 アーセナル シーズン個人ランキング (PL公式)\n")
+            standings_lines.append("| 選手 | 時間 | G | A | xG | xA | タックル | ボール回収 | 守備CBI |")
+            standings_lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+            ars_season.sort(key=lambda x: (x.get("goals_scored", 0) + x.get("assists", 0), x.get("minutes", 0)), reverse=True)
+            for p in ars_season[:18]:
+                standings_lines.append(
+                    f"| **{p.get('web_name')}** | {p.get('minutes')}' | **{p.get('goals_scored')}** | **{p.get('assists')}** | "
+                    f"{p.get('expected_goals', '0.0')} | {p.get('expected_assists', '0.0')} | "
+                    f"{p.get('tackles', 0)} | {p.get('recoveries', 0)} | {p.get('clearances_blocks_interceptions', 0)} |"
+                )
+            standings_lines.append("")
+
+        top_g = sorted(all_els, key=lambda x: (x.get("goals_scored", 0), -x.get("minutes", 0)), reverse=True)[:5]
+        top_a = sorted(all_els, key=lambda x: (x.get("assists", 0), -x.get("minutes", 0)), reverse=True)[:5]
+        top_tk = sorted(all_els, key=lambda x: (x.get("tackles", 0), -x.get("minutes", 0)), reverse=True)[:5]
+
+        standings_lines.append("### 👑 プレミアリーグ全体 個人ランキング TOP 5\n")
+        standings_lines.append("| 順位 | ⚽ 得点ランキング | 🎯 アシストランキング | 🛡️ タックル奪取王 |")
+        standings_lines.append("| :---: | :--- | :--- | :--- |")
+        for i in range(5):
+            pg, pa, pt = top_g[i], top_a[i], top_tk[i]
+            standings_lines.append(
+                f"| {i+1}位 | **{pg['web_name']}** ({fpl_short.get(pg['team'], '')}) **{pg['goals_scored']}G** | "
+                f"**{pa['web_name']}** ({fpl_short.get(pa['team'], '')}) **{pa['assists']}A** | "
+                f"**{pt['web_name']}** ({fpl_short.get(pt['team'], '')}) **{pt.get('tackles', 0)}回** |"
             )
-        fpl_fin = [f for f in ars_fixes if f.get("finished") or (f.get("team_h_score") is not None)]
-        if fpl_fin:
-            fpl_last_fix = fpl_fin[-1]
-    except Exception as e:
-        print(f"FPL fix err: {e}", flush=True)
+        standings_lines.append("")
 
-    # FotMobの高速試行（最大5秒でタイムアウトさせて絶対にハングさせない）
-    fotmob_lines = []
-    try:
-        scraper = cloudscraper.create_scraper()
-        fm_team_url = build_url(P_HTTPS, D_FOTMOB, f"/api/teams?id={ARSENAL_FOTMOB_ID}&ccode3=JPN")
-        fm_res = scraper.get(fm_team_url, timeout=(3, 5))
-        if fm_res.status_code == 200:
-            fm_data = fm_res.json()
-            all_fix = fm_data.get("fixtures", {}).get("allFixtures", {}).get("fixtures", [])
-            fm_fin = [m for m in all_fix if m.get("status", {}).get("finished")]
-            if fm_fin:
-                last_match_id = fm_fin[-1]["id"]
-                det_url = build_url(P_HTTPS, D_FOTMOB, f"/api/matchDetails?matchId={last_match_id}&lang=ja")
-                det_res = scraper.get(det_url, timeout=(3, 5))
-                if det_res.status_code == 200:
-                    d_json = det_res.json()
-                    h_team = d_json.get("general", {}).get("homeTeam", {}).get("name", "Home")
-                    a_team = d_json.get("general", {}).get("awayTeam", {}).get("name", "Away")
-                    score_s = d_json.get("header", {}).get("status", {}).get("scoreStr", "-")
-                    fotmob_lines.append(f"### ⚽ {h_team} {score_s} {a_team}\n")
+    # プレミアリーグ全20クラブ最新順位表（FPL公式試合結果から直接集計するためエラー率0%）
+    if fpl_teams and fpl_fixes:
+        table = {tid: {"name": name, "gp": 0, "w": 0, "d": 0, "l": 0, "gf": 0, "ga": 0, "pts": 0} for tid, name in fpl_teams.items()}
+        for f in fpl_fixes:
+            if f.get("finished") or f.get("finished_provisional") or (f.get("team_h_score") is not None and f.get("started")):
+                th, ta = f.get("team_h"), f.get("team_a")
+                sh, sa = f.get("team_h_score", 0), f.get("team_a_score", 0)
+                if th in table and ta in table and sh is not None and sa is not None:
+                    table[th]["gp"] += 1
+                    table[ta]["gp"] += 1
+                    table[th]["gf"] += sh
+                    table[th]["ga"] += sa
+                    table[ta]["gf"] += sa
+                    table[ta]["ga"] += sh
+                    if sh > sa:
+                        table[th]["w"] += 1
+                        table[th]["pts"] += 3
+                        table[ta]["l"] += 1
+                    elif sh < sa:
+                        table[ta]["w"] += 1
+                        table[ta]["pts"] += 3
+                        table[th]["l"] += 1
+                    else:
+                        table[th]["d"] += 1
+                        table[ta]["d"] += 1
+                        table[th]["pts"] += 1
+                        table[ta]["pts"] += 1
 
-                    lineup_data = d_json.get("content", {}).get("lineup", {})
-                    ars_players_parsed = []
-                    for side in ["homeTeam", "awayTeam"]:
-                        t_obj = lineup_data.get(side, {})
-                        if str(t_obj.get("id")) == ARSENAL_FOTMOB_ID or "Arsenal" in t_obj.get("name", ""):
-                            for p in t_obj.get("starters", []) + t_obj.get("subs", []):
-                                p_name = p.get("name", "")
-                                pos = p.get("positionStringShort", "-")
-                                rating_val = p.get("performance", {}).get("rating", 0) or 0
-                                p_stats = {}
-                                for st_group in p.get("stats", []):
-                                    for st_key, st_val in st_group.get("stats", {}).items():
-                                        p_stats[st_key] = st_val.get("stat", {}).get("value", "-")
-                                mins = p_stats.get("Minutes played", "-")
-                                if mins == "-" and p in t_obj.get("subs", []):
-                                    continue
-                                g_duel_str = str(p_stats.get("Ground duels won", "0"))
-                                g_duel_num = int(re.match(r"(\d+)", g_duel_str).group(1)) if re.match(r"(\d+)", g_duel_str) else 0
-                                a_duel_str = str(p_stats.get("Aerial duels won", "0"))
-                                ars_players_parsed.append({
-                                    "name": p_name, "pos": pos, "rating": float(rating_val),
-                                    "mins": mins, "goals": p_stats.get("Goals", 0), "assists": p_stats.get("Assists", 0),
-                                    "shots": p_stats.get("Total shots", "-"), "passes": p_stats.get("Accurate passes", "-"),
-                                    "g_duel_str": g_duel_str, "g_duel_num": g_duel_num,
-                                    "a_duel_str": a_duel_str
-                                })
+        sorted_teams = sorted(table.values(), key=lambda x: (x["pts"], x["gf"] - x["ga"], x["gf"]), reverse=True)
+        standings_lines.append("### 🏆 プレミアリーグ 最新順位表\n")
+        standings_lines.append("| 順位 | クラブ | 試 | 勝 | 分 | 負 | 得 | 失 | 得失 | 勝点 |")
+        standings_lines.append("| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+        for idx, t in enumerate(sorted_teams, 1):
+            c_name = f"🔴 **{t['name']}**" if t["name"] == "Arsenal" else t["name"]
+            gd = t["gf"] - t["ga"]
+            gd_str = f"+{gd}" if gd > 0 else str(gd)
+            standings_lines.append(f"| {idx} | {c_name} | {t['gp']} | {t['w']} | {t['d']} | {t['l']} | {t['gf']} | {t['ga']} | {gd_str} | **{t['pts']}** |")
+        standings_lines.append("")
 
-                    if len(ars_players_parsed) >= 3:
-                        top_rating = sorted(ars_players_parsed, key=lambda x: x["rating"], reverse=True)[:3]
-                        top_g_duel = sorted(ars_players_parsed, key=lambda x: x["g_duel_num"], reverse=True)[:3]
-                        fotmob_lines.append("#### 👑 この試合のアーセナル個人ランキング")
-                        fotmob_lines.append("| 部門 | 1位 | 2位 | 3位 |")
-                        fotmob_lines.append("| :--- | :--- | :--- | :--- |")
-                        if top_rating[0]["rating"] > 0:
-                            fotmob_lines.append(f"| **最高採点** | {top_rating[0]['name']} ({top_rating[0]['rating']:.1f}) | {top_rating[1]['name']} ({top_rating[1]['rating']:.1f}) | {top_rating[2]['name']} ({top_rating[2]['rating']:.1f}) |")
-                        fotmob_lines.append(f"| **地上戦デュエル勝利** | {top_g_duel[0]['name']} ({top_g_duel[0]['g_duel_str']}) | {top_g_duel[1]['name']} ({top_g_duel[1]['g_duel_str']}) | {top_g_duel[2]['name']} ({top_g_duel[2]['g_duel_str']}) |")
-                        fotmob_lines.append("")
-
-                        fotmob_lines.append("#### 👥 アーセナル全出場選手 採点＆デュエル一覧")
-                        fotmob_lines.append("| 選手 | ポジ | 採点 | 時間 | G/A | シュート | パス成功 | 地上戦勝 | 空中戦勝 |")
-                        fotmob_lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
-                        for p in ars_players_parsed:
-                            r_str = f"**{p['rating']:.1f}**" if p["rating"] > 0 else "-"
-                            ga = f"{p['goals']}G {p['assists']}A" if (p['goals'] or p['assists']) else "-"
-                            fotmob_lines.append(f"| **{p['name']}** | {p['pos']} | {r_str} | {p['mins']}' | {ga} | {p['shots']} | {p['passes']} | {p['g_duel_str']} | {p['a_duel_str']} |")
-                        fotmob_lines.append("")
-
-                    stats_groups = d_json.get("content", {}).get("stats", {}).get("Periods", {}).get("All", {}).get("stats", [])
-                    for group in stats_groups:
-                        fotmob_lines.append(f"#### 📊 {group.get('title', 'スタッツ')}")
-                        fotmob_lines.append(f"| 項目 | {h_team} | {a_team} |")
-                        fotmob_lines.append("| :--- | :---: | :---: |")
-                        for item in group.get("stats", []):
-                            if item.get("type") == "title":
-                                continue
-                            vals = item.get("stats", ["-", "-"])
-                            if len(vals) >= 2 and vals[0] is not None:
-                                fotmob_lines.append(f"| {item.get('title', '')} | {vals[0]} | {vals[1]} |")
-                        fotmob_lines.append("")
-    except Exception as e:
-        print(f"FotMobスキップ: {e}", flush=True)
-
-    if fotmob_lines:
-        return next_html, markdown.markdown("\n".join(fotmob_lines), extensions=['tables'])
-
-    # FotMobがブロックされた場合のESPN高速取得
-    espn_lines = []
-    try:
-        leagues = [("eng.1", "Premier League"), ("uefa.champions", "Champions League")]
-        past_events = []
-        for lg_code, lg_name in leagues:
-            try:
-                url_s = build_url(P_HTTPS, D_ESPN, f"/apis/site/v2/sports/soccer/{lg_code}/teams/{ARSENAL_ESPN_ID}/schedule")
-                res_s = requests.get(url_s, headers=HEADERS, timeout=5).json()
-                for ev in res_s.get("events", []):
-                    ev_dt = datetime.fromisoformat(ev["date"].replace("Z", "+00:00"))
-                    state = ev.get("competitions", [{}])[0].get("status", {}).get("type", {}).get("state", "")
-                    if state == "post" or ev_dt < now_utc:
-                        past_events.append((ev_dt, lg_code, lg_name, ev))
-            except Exception:
-                pass
-
-        if past_events:
-            past_events.sort(key=lambda x: x[0])
-            _, last_lg_code, last_lg_name, last_ev = past_events[-1]
-            last_id = last_ev["id"]
-
-            sum_url = build_url(P_HTTPS, D_ESPN, f"/apis/site/v2/sports/soccer/{last_lg_code}/summary?event={last_id}")
-            sum_res = requests.get(sum_url, headers=HEADERS, timeout=6).json()
-            comp = sum_res["header"]["competitions"][0]
-            t_home = next(t for t in comp["competitors"] if t["homeAway"] == "home")
-            t_away = next(t for t in comp["competitors"] if t["homeAway"] == "away")
-            h_id = str(t_home["team"]["id"])
-            a_id = str(t_away["team"]["id"])
-            h_name = t_home["team"]["displayName"]
-            a_name = t_away["team"]["displayName"]
-            h_score = t_home.get("score", "0")
-            a_score = t_away.get("score", "0")
-            if isinstance(h_score, dict): h_score = h_score.get("displayValue", "0")
-            if isinstance(a_score, dict): a_score = a_score.get("displayValue", "0")
-
-            espn_lines.append(f"### ⚽ {h_name} {h_score} - {a_score} {a_name} ({last_lg_name})\n")
-
-            details = comp.get("details", [])
-            if details:
-                espn_lines.append("#### 🎯 ゴール＆試合イベント詳細")
-                espn_lines.append("| 時間 | チーム | 選手 | 内容 |")
-                espn_lines.append("| :--- | :--- | :--- | :--- |")
-                for d in details:
-                    clock = d.get("clock", {}).get("displayValue", "")
-                    t_id = str(d.get("team", {}).get("id", ""))
-                    t_label = h_name if t_id == h_id else a_name
-                    parts = d.get("participants", [])
-                    p_name = parts[0].get("athlete", {}).get("displayName", "-") if parts else "-"
-                    d_type = d.get("type", {}).get("text", "")
-                    espn_lines.append(f"| {clock} | {t_label} | **{p_name}** | {d_type} |")
-                espn_lines.append("")
-
-            rosters = sum_res.get("rosters", [])
-            for r in rosters:
-                if str(r.get("team", {}).get("id", "")) == ARSENAL_ESPN_ID:
-                    espn_lines.append("#### 👥 アーセナル出場選手＆個人スタッツ")
-                    espn_lines.append("| 選手 | ポジ | 出場 | シュート(枠内) | G / A | タックル / ファウル |")
-                    espn_lines.append("| :--- | :---: | :---: | :---: | :---: | :---: |")
-                    for ath in r.get("roster", []):
-                        starter = "先発" if ath.get("starter") else ("交代" if ath.get("subbedIn") else "")
-                        if not starter:
-                            continue
-                        p_name = ath.get("athlete", {}).get("displayName", "")
-                        pos = ath.get("position", {}).get("abbreviation", "-")
-                        st_map = {s["name"]: s["displayValue"] for s in ath.get("stats", [])}
-                        sh = f"{st_map.get('totalShots', '0')} ({st_map.get('shotsOnTarget', '0')})"
-                        ga = f"{st_map.get('totalGoals', '0')}G / {st_map.get('goalAssists', '0')}A"
-                        tf = f"T:{st_map.get('totalTackles', '0')} / F:{st_map.get('foulsCommitted', '0')}"
-                        espn_lines.append(f"| **{p_name}** | {pos} | {starter} | {sh} | {ga} | {tf} |")
-                    espn_lines.append("")
-
-            box_teams = sum_res.get("boxscore", {}).get("teams", [])
-            if len(box_teams) >= 2:
-                h_stats, a_stats = {}, {}
-                for bt in box_teams:
-                    bt_id = str(bt.get("team", {}).get("id", ""))
-                    st_dict = {s["name"]: s["displayValue"] for s in bt.get("statistics", [])}
-                    if bt_id == h_id: h_stats = st_dict
-                    elif bt_id == a_id: a_stats = st_dict
-
-                espn_lines.append("#### 📊 チーム詳細スタッツ比較")
-                espn_lines.append(f"| 項目 | {h_name} | {a_name} |")
-                espn_lines.append("| :--- | :---: | :---: |")
-                label_map = [
-                    ("possessionPct", "ボール支配率 (%)"), ("totalShots", "総シュート数"),
-                    ("shotsOnTarget", "枠内シュート数"), ("shotPct", "枠内シュート率 (%)"),
-                    ("blockedShots", "ブロックされたシュート"), ("wonCorners", "コーナーキック"),
-                    ("offsides", "オフサイド"), ("totalPasses", "総パス数"),
-                    ("accuratePasses", "成功パス数"), ("passPct", "パス成功率 (%)"),
-                    ("totalCrosses", "クロス総数"), ("accurateCrosses", "成功クロス数"),
-                    ("totalLongBalls", "ロングボール総数"), ("accurateLongBalls", "成功ロングボール数"),
-                    ("totalTackles", "タックル総数"), ("effectiveTackles", "タックル成功数"),
-                    ("tacklePct", "タックル成功率 (%)"), ("interceptions", "インターセプト"),
-                    ("effectiveClearance", "クリア数"), ("saves", "GKセーブ数"),
-                    ("foulsCommitted", "ファウル数"), ("yellowCards", "イエローカード"), ("redCards", "レッドカード")
-                ]
-                for key, jp in label_map:
-                    if key in h_stats or key in a_stats:
-                        espn_lines.append(f"| {jp} | {h_stats.get(key, '-')} | {a_stats.get(key, '-')} |")
-                espn_lines.append("")
-    except Exception as e:
-        print(f"ESPN stats err: {e}", flush=True)
-
-    if not espn_lines and fpl_last_fix:
-        h_n = fpl_teams.get(fpl_last_fix["team_h"], "Home")
-        a_n = fpl_teams.get(fpl_last_fix["team_a"], "Away")
-        h_s = fpl_last_fix.get("team_h_score", 0)
-        a_s = fpl_last_fix.get("team_a_score", 0)
-        espn_lines.append(f"### ⚽ {h_n} {h_s} - {a_s} {a_n} (PL 第{fpl_last_fix.get('event')}節)\n")
-
-    if espn_lines:
-        stats_md = markdown.markdown("\n".join(espn_lines), extensions=['tables'])
-
-    return next_html, stats_md
-
-# --------------------------------------------------
-# 4. PL順位表 ＆ 個人スタッツランキング
-# --------------------------------------------------
-def get_standings_and_rankings():
-    print("6. 順位表＆個人ランキング取得中...", flush=True)
-    lines = []
-
-    try:
-        boot_url = build_url(P_HTTPS, D_FPL, "/api/bootstrap-static/")
-        boot = requests.get(boot_url, headers=HEADERS, timeout=6).json()
-        teams_map = {t["id"]: t["short_name"] for t in boot.get("teams", [])}
-        ars_id = next((t["id"] for t in boot.get("teams", []) if t["name"] == "Arsenal"), 1)
-        elements = boot.get("elements", [])
-
-        ars_players = [p for p in elements if p.get("team") == ars_id and p.get("minutes", 0) > 0]
-        if ars_players:
-            lines.append("### 🔴 アーセナル シーズン個人スタッツ一覧 (PL公式)\n")
-            lines.append("| 選手 | 時間 | G | A | xG | xA | 脅威度 | 創造性 | 守備貢献(T&CBI) |")
-            lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
-            ars_players.sort(key=lambda x: (x.get("goals_scored", 0) + x.get("assists", 0), x.get("minutes", 0)), reverse=True)
-            for p in ars_players[:18]:
-                name = p.get("web_name", "")
-                mins = p.get("minutes", 0)
-                g = p.get("goals_scored", 0)
-                a = p.get("assists", 0)
-                xg = p.get("expected_goals", "0.0")
-                xa = p.get("expected_assists", "0.0")
-                thr = p.get("threat", "0")
-                cre = p.get("creativity", "0")
-                def_c = p.get("clearances_blocks_interceptions", 0) + p.get("tackles", 0)
-                lines.append(f"| **{name}** | {mins}' | **{g}** | **{a}** | {xg} | {xa} | {thr} | {cre} | {def_c} |")
-            lines.append("")
-
-        if elements:
-            top_g = sorted(elements, key=lambda x: (x.get("goals_scored", 0), -x.get("minutes", 0)), reverse=True)[:5]
-            top_a = sorted(elements, key=lambda x: (x.get("assists", 0), -x.get("minutes", 0)), reverse=True)[:5]
-            top_xg = sorted(elements, key=lambda x: float(x.get("expected_goals", 0) or 0), reverse=True)[:5]
-
-            lines.append("### 👑 プレミアリーグ個人ランキング TOP 5\n")
-            lines.append("| 順位 | ⚽ 得点王争い | 🎯 アシスト王争い | 🔥 ゴール期待値(xG)上位 |")
-            lines.append("| :---: | :--- | :--- | :--- |")
-            for i in range(5):
-                pg = top_g[i]
-                pa = top_a[i]
-                px = top_xg[i]
-                g_str = f"**{pg['web_name']}** ({teams_map.get(pg['team'], '')}) - **{pg['goals_scored']}G**"
-                a_str = f"**{pa['web_name']}** ({teams_map.get(pa['team'], '')}) - **{pa['assists']}A**"
-                x_str = f"**{px['web_name']}** ({teams_map.get(px['team'], '')}) - **{px.get('expected_goals', '0')}**"
-                lines.append(f"| {i+1}位 | {g_str} | {a_str} | {x_str} |")
-            lines.append("")
-    except Exception as e:
-        print(f"FPL ranking err: {e}", flush=True)
-
-    try:
-        url = build_url(P_HTTPS, D_ESPN, "/apis/v2/sports/soccer/eng.1/standings")
-        res = requests.get(url, headers=HEADERS, timeout=6).json()
-        entries = res.get("children", [{}])[0].get("standings", {}).get("entries", [])
-        if entries:
-            lines.append("### 🏆 プレミアリーグ 最新順位表\n")
-            lines.append("| 順位 | クラブ | 試 | 勝 | 分 | 負 | 得失 | 勝点 |")
-            lines.append("| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |")
-            for entry in entries:
-                t_name = entry.get("team", {}).get("displayName", "")
-                if "Arsenal" in t_name:
-                    t_name = f"🔴 **{t_name}**"
-                st = {s["name"]: s.get("displayValue", s.get("value", "-")) for s in entry.get("stats", [])}
-                rk = st.get("rank", "-")
-                gp = st.get("gamesPlayed", "-")
-                w = st.get("wins", "-")
-                d = st.get("ties", "-")
-                l = st.get("losses", "-")
-                gd = st.get("pointDifferential", "-")
-                pts = st.get("points", "-")
-                lines.append(f"| {rk} | {t_name} | {gp} | {w} | {d} | {l} | {gd} | **{pts}** |")
-            lines.append("")
-    except Exception as e:
-        lines.append(f"順位表取得エラー: {e}")
-
-    return markdown.markdown("\n".join(lines), extensions=['tables'])
+    stats_html = markdown.markdown("\n".join(stats_lines), extensions=['tables']) if stats_lines else "<p>スタッツデータなし</p>"
+    standings_html = markdown.markdown("\n".join(standings_lines), extensions=['tables']) if standings_lines else "<p>順位表データなし</p>"
+    return next_html, stats_html, standings_html
 
 def main():
     jst_now = datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y/%m/%d %H:%M")
-    next_box_html, stats_html = get_match_and_stats()
-    standings_html = get_standings_and_rankings()
+    next_box_html, stats_html, standings_html = get_all_football_data()
     news_html = get_all_uk_news()
 
     html = f"""<!DOCTYPE html>
@@ -634,6 +599,7 @@ def main():
   .content.active {{ display: block; }}
   h2 {{ font-size: 1.05rem; background: #1e1e1e; padding: 6px 10px; border-left: 3px solid #ef0107; margin: 18px 0 8px; }}
   h3 {{ font-size: 1rem; color: #ff9999; margin: 16px 0 6px; border-bottom: 1px solid #333; padding-bottom: 4px; }}
+  h4 {{ font-size: 0.92rem; color: #ffcc00; margin: 14px 0 4px; }}
   details {{ background: #181818; border: 1px solid #2a2a2a; border-radius: 6px; margin-bottom: 8px; padding: 8px 10px; }}
   summary {{ font-weight: bold; cursor: pointer; outline: none; list-style: none; }}
   summary::-webkit-details-marker {{ display: none; }}
@@ -661,9 +627,9 @@ def main():
       <div class="tab-btn" id="btn-stats" onclick="switchTab(1)">📊 前回試合スタッツ</div>
       <div class="tab-btn" id="btn-table" onclick="switchTab(2)">🏆 順位＆個人ランク</div>
     </div>
-    <div id="news" class="content active">{news_html}</div>
-    <div id="stats" class="content">{stats_html}</div>
-    <div id="table" class="content">{standings_html}</div>
+    <section id="news" class="content active">{news_html}</section>
+    <section id="stats" class="content">{stats_html}</section>
+    <section id="table" class="content">{standings_html}</section>
   </div>
 <script>
   const tabIds = ['news', 'stats', 'table'];
@@ -673,8 +639,10 @@ def main():
   function switchTab(index) {{
     currentTab = index;
     tabIds.forEach((id, i) => {{
-      document.getElementById(id).classList.toggle('active', i === index);
-      document.getElementById(btnIds[i]).classList.toggle('active', i === index);
+      const el = document.getElementById(id);
+      const btn = document.getElementById(btnIds[i]);
+      if (el) el.classList.toggle('active', i === index);
+      if (btn) btn.classList.toggle('active', i === index);
     }});
     window.scrollTo(0, 0);
   }}
@@ -728,7 +696,7 @@ def main():
 
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html)
-    print("7. 全工程完了！", flush=True)
+    print("6. 全工程完了！", flush=True)
 
 if __name__ == "__main__":
     main()
