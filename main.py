@@ -1,6 +1,8 @@
 import os
 import re
+import json
 import time
+import calendar
 import requests
 import feedparser
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
@@ -11,7 +13,7 @@ from google import genai
 from google.genai import types
 from bs4 import BeautifulSoup
 
-print("1. スクリプト開始...", flush=True)
+print("1. 新着専用スクリプト開始...", flush=True)
 
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
@@ -28,11 +30,14 @@ HEADERS = {
     "Accept-Language": "ja,en-US;q=0.9,en;q=0.8"
 }
 
+HISTORY_FILE = "history.json"
+
 def build_url(*parts):
     raw = "".join(parts)
     raw = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', raw)
     return raw.replace("[", "").replace("]", "")
 
+# ドメイン分割定義（Markdown自動リンク化防止）
 P_HTTPS = "https" + "://"
 D_GUARDIAN = "www.theguardian" + ".com"
 D_BBC = "feeds.bbci" + ".co.uk"
@@ -40,6 +45,11 @@ D_ARSEBLOG = "arseblog" + ".news"
 D_FLONDON = "www.football" + ".london"
 D_YOUTH = "arsenalyouth.wordpress" + ".com"
 D_JUSTARS = "www.justarsenal" + ".com"
+D_DCANNON = "dailycannon" + ".com"
+D_PAINARS = "paininthearsenal" + ".com"
+D_SKY = "www.skysports" + ".com"
+D_ESPN = "www.espn" + ".com"
+D_F365 = "www.football365" + ".com"
 D_FPL = "fantasy.premierleague" + ".com"
 D_GTRANS = "translate.googleapis" + ".com"
 
@@ -56,6 +66,29 @@ BIG6_PATTERNS = [
     r"\bmanchester united\b", r"\bman utd\b", r"\bman united\b", r"\bamorim\b", r"\bold trafford\b", r"\bcarrick\b",
     r"\btottenham\b", r"\bspurs\b", r"\bpostecoglou\b"
 ]
+
+# --------------------------------------------------
+# 既読履歴の読み込み・保存（同じ記事の再掲載を100%ブロック）
+# --------------------------------------------------
+def load_history():
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return set(data.get("urls", [])), set(data.get("titles", []))
+        except Exception:
+            pass
+    return set(), set()
+
+def save_history(urls_set, titles_set):
+    # 最新400件分だけ保持してファイル肥大化を防止
+    urls_list = list(urls_set)[-400:]
+    titles_list = list(titles_set)[-400:]
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump({"urls": urls_list, "titles": titles_list}, f, ensure_ascii=False, indent=2)
+
+def normalize_url(url):
+    return url.split("?")[0].rstrip("/").lower()
 
 def is_valid_article(title, summary):
     text = (title + " " + summary).lower()
@@ -86,7 +119,7 @@ def sanitize_html_fragment(raw_text):
     return "".join(str(child) for child in soup.div.contents) if soup.div else cleaned
 
 # --------------------------------------------------
-# バックアップ翻訳機能（Geminiが1日20回の上限に達している時でも即座に日本語化する安全装置）
+# バックアップ翻訳（API制限時でも新着記事を即座に日本語化）
 # --------------------------------------------------
 def translate_text_free(text_en):
     if not text_en:
@@ -108,14 +141,12 @@ def build_fallback_section_html(header_title, icon, items_raw):
     lines = [f"<h2>{header_title}</h2>"]
 
     def process_item(item):
-        name, title_en, content_en, link = item
-        # タイトルと本文をまとめて高速翻訳
+        name, title_en, content_en, link, age_str = item
         combined_ja = translate_text_free(f"{title_en}\n---\n{content_en[:500]}")
         parts = combined_ja.split("---")
         title_ja = parts[0].strip() if parts else title_en
         body_ja = parts[1].strip() if len(parts) > 1 else combined_ja
 
-        # 読みやすい箇条書きに分割
         sentences = [s.strip() for s in re.split(r'[。．\n]+', body_ja) if len(s.strip()) > 8]
         if not sentences:
             sentences = [body_ja]
@@ -123,7 +154,7 @@ def build_fallback_section_html(header_title, icon, items_raw):
 
         return (
             f"<details>"
-            f"<summary>{icon} [{name}] {title_ja}</summary>"
+            f"<summary>{icon} [{name} / {age_str}] {title_ja}</summary>"
             f"<div class='detail-box'><ul>{li_html}</ul>"
             f"<p class='ext-link'><a href='{link}' target='_blank' rel='noopener noreferrer'>🔗 元記事(英語)を開く ※通信発生</a></p>"
             f"</div></details>"
@@ -135,10 +166,9 @@ def build_fallback_section_html(header_title, icon, items_raw):
     return "\n".join(lines)
 
 # --------------------------------------------------
-# 1. Gemini呼び出し（テスト通信なしで回数を節約 ＆ 別モデル自動ローテーション）
+# 1. Geminiモデル取得 & 呼び出し
 # --------------------------------------------------
 def get_candidate_models():
-    # メインモデルが429上限でも、別枠のliteモデル等を順番に試せるリストを作成
     candidates = []
     try:
         for m in client.models.list():
@@ -152,7 +182,6 @@ def get_candidate_models():
     for fb in ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.0-flash"]:
         if fb not in candidates:
             candidates.append(fb)
-    # 通常flashを先頭、lite系を次点に並べる
     candidates.sort(key=lambda x: (0 if "flash" in x and "lite" not in x else 1))
     return candidates[:4]
 
@@ -174,55 +203,79 @@ def call_gemini_smart(prompt, models):
                 print(f"Gemini成功: {model_name}", flush=True)
                 return sanitize_html_fragment(res.text)
         except Exception as e:
-            err_str = str(e)
-            print(f"モデル {model_name} スキップ ({err_str[:80]})", flush=True)
+            print(f"モデル {model_name} スキップ ({str(e)[:70]})", flush=True)
             continue
-    return None  # 全モデルが429上限に達している場合はNoneを返し、バックアップ翻訳へ切り替え
+    return None
 
 # --------------------------------------------------
-# 2. RSSフィード取得 ＆ ニュース生成
+# 2. RSS並列取得（鮮度48時間チェック ＋ 既読除外）
 # --------------------------------------------------
+def get_entry_age_hours(entry, now_ts):
+    parsed = entry.get("published_parsed") or entry.get("updated_parsed")
+    if parsed:
+        try:
+            pub_ts = calendar.timegm(parsed)
+            diff_h = (now_ts - pub_ts) / 3600.0
+            return max(0.0, diff_h)
+        except Exception:
+            pass
+    return 12.0  # 日時不明なフィードは12時間前扱い
+
 def fetch_single_feed(name, url, limit):
     results = []
+    now_ts = time.time()
     try:
         resp = requests.get(url, headers=HEADERS, timeout=(4, 6))
         f = feedparser.parse(resp.content)
         for e in f.entries[:limit]:
             title = e.get("title", "").strip()
-            if not title:
+            link = e.get("link", "").strip()
+            if not title or not link:
+                continue
+            age_h = get_entry_age_hours(e, now_ts)
+            # 72時間以上前の古い記事は最初から門前払い
+            if age_h > 72.0:
                 continue
             raw_html = e.get("summary", "") or (e.get("content", [{}])[0].get("value", "") if e.get("content") else "")
             clean_text = BeautifulSoup(raw_html, "html.parser").get_text(separator=" ", strip=True)
             if not is_valid_article(title, clean_text):
                 continue
-            results.append((name, title, clean_text[:550], e.get("link", "")))
+            results.append((name, title, clean_text[:550], link, age_h))
     except Exception as e:
         print(f"RSSスキップ ({name}): {e}", flush=True)
     return results
 
 def get_all_uk_news():
-    print("2. RSSフィードを一斉取得中...", flush=True)
+    seen_urls, seen_titles = load_history()
+    print(f"2. 既読履歴 {len(seen_urls)}件を読み込み完了。新着RSSを収集中...", flush=True)
+
+    # 更新頻度の高い現地メディアを大幅追加して毎日新着を確保
     arsenal_feeds = [
-        ("Arseblog", build_url(P_HTTPS, D_ARSEBLOG, "/feed/"), 6),
-        ("Football.London", build_url(P_HTTPS, D_FLONDON, "/arsenal-fc/?service=rss"), 5),
-        ("Guardian", build_url(P_HTTPS, D_GUARDIAN, "/football/arsenal/rss"), 5),
-        ("BBC", build_url(P_HTTPS, D_BBC, "/sport/football/teams/arsenal/rss.xml"), 5),
-        ("JustArsenal", build_url(P_HTTPS, D_JUSTARS, "/feed"), 4),
-        ("Arsenal Youth", build_url(P_HTTPS, D_YOUTH, "/feed/"), 6)
+        ("Arseblog", build_url(P_HTTPS, D_ARSEBLOG, "/feed/"), 8),
+        ("Football.London", build_url(P_HTTPS, D_FLONDON, "/arsenal-fc/?service=rss"), 8),
+        ("Daily Cannon", build_url(P_HTTPS, D_DCANNON, "/feed/"), 8),
+        ("Pain in the Arsenal", build_url(P_HTTPS, D_PAINARS, "/feed/"), 8),
+        ("JustArsenal", build_url(P_HTTPS, D_JUSTARS, "/feed"), 8),
+        ("Guardian", build_url(P_HTTPS, D_GUARDIAN, "/football/arsenal/rss"), 6),
+        ("BBC", build_url(P_HTTPS, D_BBC, "/sport/football/teams/arsenal/rss.xml"), 6),
+        ("Arsenal Youth", build_url(P_HTTPS, D_YOUTH, "/feed/"), 8)
     ]
 
     pl_feeds = [
+        ("Sky Sports", build_url(P_HTTPS, D_SKY, "/rss/12040"), 30),
         ("Guardian PL", build_url(P_HTTPS, D_GUARDIAN, "/football/premierleague/rss"), 25),
         ("BBC PL", build_url(P_HTTPS, D_BBC, "/sport/football/premier-league/rss.xml"), 25),
-        ("BBC Football", build_url(P_HTTPS, D_BBC, "/sport/football/rss.xml"), 20),
+        ("Football365", build_url(P_HTTPS, D_F365, "/feed"), 25),
+        ("ESPN", build_url(P_HTTPS, D_ESPN, "/espn/rss/soccer/news"), 25),
         ("BBC Gossip", build_url(P_HTTPS, D_BBC, "/sport/football/gossip/rss.xml"), 2)
     ]
 
-    seen_titles = set()
-    ars_top_raw, ars_u21_raw = [], []
-    big6_raw, other14_raw, gossip_raw = [], [], []
+    raw_ars_pool = []
+    raw_pl_pool = []
+    raw_gossip_pool = []
+    batch_seen_titles = set()
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=12) as executor:
         future_map = {}
         for name, url, limit in arsenal_feeds:
             future_map[executor.submit(fetch_single_feed, name, url, limit)] = ("ARS", name)
@@ -230,47 +283,80 @@ def get_all_uk_news():
             future_map[executor.submit(fetch_single_feed, name, url, limit)] = ("PL", name)
 
         try:
-            for fut in as_completed(future_map, timeout=12):
+            for fut in as_completed(future_map, timeout=14):
                 group, _ = future_map[fut]
-                for item in fut.result():
-                    name, title, text, link = item
-                    if title in seen_titles:
+                for name, title, text, link, age_h in fut.result():
+                    norm_u = normalize_url(link)
+                    norm_t = title.lower().strip()
+                    # 過去に一度でも載せたURL・タイトルは完全除外
+                    if norm_u in seen_urls or norm_t in seen_titles or norm_t in batch_seen_titles:
                         continue
-                    seen_titles.add(title)
+                    batch_seen_titles.add(norm_t)
 
                     if group == "ARS":
-                        if "Youth" in name or any(k in (title + text).lower() for k in ["u21", "u18", "under-21", "under-18", "academy", "hale end", "pl2"]):
-                            if len(ars_u21_bucket := ars_u21_raw) < 5:
-                                ars_u21_raw.append(item)
-                        else:
-                            if len(ars_top_raw) < 10:
-                                ars_top_raw.append(item)
+                        raw_ars_pool.append((name, title, text, link, age_h))
                     elif "Gossip" in name:
-                        gossip_raw.append(item)
+                        raw_gossip_pool.append((name, title, text, link, age_h))
                     else:
-                        if "arsenal" in title.lower() and not is_big6_article(title, text):
-                            continue
-                        if is_big6_article(title, text):
-                            if len(big6_raw) < 9:
-                                big6_raw.append(item)
-                        else:
-                            if len(other14_raw) < 9:
-                                other14_raw.append(item)
+                        raw_pl_pool.append((name, title, text, link, age_h))
         except TimeoutError:
             print("一部RSSをスキップして進行します", flush=True)
 
+    # 新しい記事順にソート（公開時間が新しいものを最優先）
+    raw_ars_pool.sort(key=lambda x: x[4])
+    raw_pl_pool.sort(key=lambda x: x[4])
+
+    # 48時間以内の記事を優先採用し、不足時のみ72時間以内から補充
+    def pick_fresh(pool, max_count, filter_fn=None):
+        fresh_48 = []
+        backup_72 = []
+        for item in pool:
+            if filter_fn and not filter_fn(item):
+                continue
+            age_label = f"{int(item[4])}時間前" if item[4] < 24 else f"{int(item[4]//24)}日前"
+            formatted = (item[0], item[1], item[2], item[3], age_label)
+            if item[4] <= 48.0:
+                fresh_48.append(formatted)
+            else:
+                backup_72.append(formatted)
+        selected = fresh_48[:max_count]
+        if len(selected) < max_count:
+            selected.extend(backup_72[:max_count - len(selected)])
+        return selected
+
+    is_u21 = lambda x: ("Youth" in x[0] or any(k in (x[1] + x[2]).lower() for k in ["u21", "u18", "under-21", "under-18", "academy", "hale end", "pl2"]))
+    ars_u21_raw = pick_fresh(raw_ars_pool, 5, is_u21)
+    ars_top_raw = pick_fresh(raw_ars_pool, 10, lambda x: not is_u21(x))
+
+    pl_no_ars = [x for x in raw_pl_pool if not ("arsenal" in x[1].lower() and not is_big6_article(x[1], x[2]))]
+    big6_raw = pick_fresh(pl_no_ars, 9, lambda x: is_big6_article(x[1], x[2]))
+    other14_raw = pick_fresh(pl_no_ars, 9, lambda x: not is_big6_article(x[1], x[2]))
+    gossip_raw = pick_fresh(raw_gossip_pool, 2)
+
+    print(f"未読新着抽出完了: Top={len(ars_top_raw)}, U21={len(ars_u21_raw)}, BIG6={len(big6_raw)}, 他14={len(other14_raw)}", flush=True)
+
+    # 今回採用した記事を履歴に追加保存（次回以降は二度と出ない）
+    for bucket in [ars_top_raw, ars_u21_raw, big6_raw, other14_raw, gossip_raw]:
+        for _, title, _, link, _ in bucket:
+            seen_urls.add(normalize_url(link))
+            seen_titles.add(title.lower().strip())
+    save_history(seen_urls, seen_titles)
+
+    if not (ars_top_raw or ars_u21_raw or big6_raw or other14_raw):
+        return "<p>現在、過去48時間以内の未読新着記事はありません（次回更新時に新しい記事が入り次第表示されます）。</p>"
+
     def to_prompt_str(raw_list):
-        return "\n".join(f"[{n}]\nTitle: {t}\nContent: {c}\nLink: {l}\n" for n, t, c, l in raw_list)
+        return "\n".join(f"[{n} / {age}]\nTitle: {t}\nContent: {c}\nLink: {l}\n" for n, t, c, l, age in raw_list)
 
     models = get_candidate_models()
 
-    # リクエスト数を1日2回に抑えるため、2バッチ構成で順番に実行（RPM制限の回避）
     prompt_1 = f"""
-以下の英語記事から、①アーセナル男子トップチーム（9〜10件）と ②アーセナルU21/U18/アカデミー/ローン選手（4〜5件）を日本語で濃密に要約し、純粋なHTMLタグのみで出力してください。コードブロックは不要です。
+以下の未読新着英語記事から、①アーセナル男子トップチーム と ②アーセナルU21/U18/アカデミー/ローン選手を日本語で濃密に要約し、純粋なHTMLタグのみで出力してください。コードブロックは不要です。
+※見出しの [メディア名 / 経過時間] は入力データの表記をそのまま使ってください。
 
-<h2>🔴 アーセナル・トップチーム最新ニュース</h2>
+<h2>🔴 アーセナル・トップチーム最新ニュース（新着のみ）</h2>
 <details>
-  <summary>🔴 [メディア名] [具体的で情報量の多い日本語タイトル]</summary>
+  <summary>🔴 [メディア名 / 経過時間] [具体的で情報量の多い日本語タイトル]</summary>
   <div class="detail-box">
     <ul>
       <li><b>要点・背景：</b>[具体的な背景]</li>
@@ -281,9 +367,9 @@ def get_all_uk_news():
   </div>
 </details>
 
-<h2>🌱 アーセナル U21・U18・アカデミー＆ローン選手動向</h2>
+<h2>🌱 アーセナル U21・U18・アカデミー＆ローン選手動向（新着のみ）</h2>
 <details>
-  <summary>🌱 [U21/アカデミー] [若手選手名や試合結果がわかる具体的な日本語タイトル]</summary>
+  <summary>🌱 [U21 / 経過時間] [若手選手名や試合結果がわかる具体的な日本語タイトル]</summary>
   <div class="detail-box">
     <ul>
       <li><b>試合結果・動向：</b>[U21/U18のスコア、契約、ローン情報]</li>
@@ -293,19 +379,19 @@ def get_all_uk_news():
   </div>
 </details>
 
-【トップチーム候補】:
+【トップチーム新着】:
 {to_prompt_str(ars_top_raw)}
 
-【U21/アカデミー候補】:
+【U21/アカデミー新着】:
 {to_prompt_str(ars_u21_raw)}
 """
 
     prompt_2 = f"""
-以下の英語記事から、①ビッグ6（8〜9件）と ②その他プレミア14クラブ（ビッグ6と同数の8〜9件）を1:1の同数で要約し、さらに ③移籍ゴシップ（5〜6件）を加えて、純粋なHTMLタグのみで出力してください。コードブロックは不要です。
+以下の未読新着英語記事から、①ビッグ6 と ②その他プレミア14クラブ を1:1の同数で要約し、さらに ③移籍ゴシップ を加えて、純粋なHTMLタグのみで出力してください。コードブロックは不要です。
 
 <h2>⚔️ ビッグ6動向（シティ/リヴァプール/チェルシー/Utd/スパーズ）</h2>
 <details>
-  <summary>⚔️ 【クラブ名】[具体的な日本語タイトル]</summary>
+  <summary>⚔️ 【クラブ名 / 経過時間】[具体的な日本語タイトル]</summary>
   <div class="detail-box">
     <ul>
       <li><b>要点・背景：</b>[具体的な出来事や試合の背景]</li>
@@ -318,7 +404,7 @@ def get_all_uk_news():
 
 <h2>🦁 その他プレミア14クラブ動向（ビッグ6と同数）</h2>
 <details>
-  <summary>🦁 【クラブ名】[具体的な日本語タイトル]</summary>
+  <summary>🦁 【クラブ名 / 経過時間】[具体的な日本語タイトル]</summary>
   <div class="detail-box">
     <ul>
       <li><b>要点・背景：</b>[具体的な出来事や試合の背景]</li>
@@ -340,31 +426,29 @@ def get_all_uk_news():
   </div>
 </details>
 
-【ビッグ6候補】:
+【ビッグ6新着】:
 {to_prompt_str(big6_raw)}
 
-【その他14クラブ候補】:
+【その他14クラブ新着】:
 {to_prompt_str(other14_raw)}
 
-【移籍ゴシップ候補】:
+【移籍ゴシップ新着】:
 {to_prompt_str(gossip_raw)}
 """
 
-    print("3. パート1（アーセナル＆U21）生成中...", flush=True)
+    print("3. パート1（アーセナル＆U21新着）生成中...", flush=True)
     html_1 = call_gemini_smart(prompt_1, models)
     if not html_1:
-        print("→ Gemini本日の回数上限のため、パート1をバックアップ翻訳で高速生成します", flush=True)
         html_1 = (
-            build_fallback_section_html("🔴 アーセナル・トップチーム最新ニュース", "🔴", ars_top_raw) + "\n" +
-            build_fallback_section_html("🌱 アーセナル U21・U18・アカデミー＆ローン選手動向", "🌱", ars_u21_raw)
+            build_fallback_section_html("🔴 アーセナル・トップチーム最新ニュース（新着のみ）", "🔴", ars_top_raw) + "\n" +
+            build_fallback_section_html("🌱 アーセナル U21・U18・アカデミー＆ローン選手動向（新着のみ）", "🌱", ars_u21_raw)
         )
     else:
-        time.sleep(4)  # 1分間の上限(5 RPM)を確実に避けるための小休止
+        time.sleep(4)
 
-    print("4. パート2（ビッグ6＆他14クラブ＆移籍）生成中...", flush=True)
+    print("4. パート2（ビッグ6＆他14クラブ＆移籍新着）生成中...", flush=True)
     html_2 = call_gemini_smart(prompt_2, models)
     if not html_2:
-        print("→ Gemini本日の回数上限のため、パート2をバックアップ翻訳で高速生成します", flush=True)
         html_2 = (
             build_fallback_section_html("⚔️ ビッグ6動向（シティ/リヴァプール/チェルシー/Utd/スパーズ）", "⚔️", big6_raw) + "\n" +
             build_fallback_section_html("🦁 その他プレミア14クラブ動向（ビッグ6と同数）", "🦁", other14_raw) + "\n" +
@@ -674,7 +758,7 @@ def main():
     </div>
     {next_box_html}
     <div class="tabs">
-      <div class="tab-btn active" id="btn-news" onclick="switchTab(0)">📰 ニュース＆U21</div>
+      <div class="tab-btn active" id="btn-news" onclick="switchTab(0)">📰 新着ニュース＆U21</div>
       <div class="tab-btn" id="btn-stats" onclick="switchTab(1)">📊 前回試合スタッツ</div>
       <div class="tab-btn" id="btn-table" onclick="switchTab(2)">🏆 順位＆個人ランク</div>
     </div>
