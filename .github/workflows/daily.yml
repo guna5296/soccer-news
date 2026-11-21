@@ -2,7 +2,9 @@ name: Arsenal Daily Update
 
 on:
   schedule:
-    - cron: '30 20 * * *'
+    # 深夜 01:13 と 早朝 04:13 (JST) の2回実行（遅延しても朝6時前に完了）
+    - cron: '13 16 * * *'
+    - cron: '13 19 * * *'
   workflow_dispatch:
 
 permissions:
@@ -27,6 +29,6 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git commit -m "Update daily Arsenal hub" || exit 0
+          git add index.html history.json
+          git commit -m "Update daily Arsenal hub and history" || exit 0
           git push
